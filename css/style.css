@@ -53,7 +53,20 @@ body { background:var(--bg); color:var(--t1); min-height:100vh; overflow-x:hidde
     0% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
     100% { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
-.notif-toast { top: 75px !important; left: 20px !important; transform: none !important; width: 320px; padding: 14px !important; border-radius: 20px !important; flex-direction: column; align-items: flex-start !important; gap: 12px !important; background: rgba(14,14,28,0.95) !important; backdrop-filter: blur(12px); border-left: 3px solid var(--gold); }
+.notif-toast {
+    top: 75px !important;
+    left: 20px !important;
+    transform: none !important;
+    width: 320px;
+    padding: 14px !important;
+    border-radius: 20px !important;
+    flex-direction: column !important;      /* تم التصحيح */
+    align-items: flex-start !important;    /* تم التصحيح */
+    gap: 12px !important;
+    background: rgba(14,14,28,0.95) !important;
+    backdrop-filter: blur(12px);
+    border-left: 3px solid var(--gold);
+}
 .notif-toast .fancy-toast-btn { width: 100%; text-align: center; }
 
 /* ========== NAVBAR مع تدرج بسيط ========== */
@@ -175,8 +188,22 @@ body { background:var(--bg); color:var(--t1); min-height:100vh; overflow-x:hidde
 .user-btn:hover { border-color:var(--gold); color:var(--t1); }
 .user-av { width:28px; height:28px; border-radius:50%; background:var(--accentg); display:flex; align-items:center; justify-content:center; font-size:16px; border:1px solid var(--borderv); color:var(--gold); }
 .notif-badge { position:absolute; top:-5px; right:-5px; background:#ef4444; color:#fff; font-size:9px; font-weight:bold; width:16px; height:16px; border-radius:50%; display:none; align-items:center; justify-content:center; border: 2px solid var(--bg4); }
-.user-dropdown { position:absolute; top:100%; left:0; margin-top:4px; background:var(--bg2); border:.5px solid var(--border); border-radius:12px; padding:4px; min-width:160px; display:none; z-index:1000; }
-.user-dropdown.show { display:flex; }
+.user-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
+    background: var(--bg2);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    padding: 4px;
+    min-width: 160px;
+    display: none;
+    z-index: 1000;
+}
+.user-dropdown.show {
+    display: flex;
+}
 .user-dropdown button { width:100%; background:none; border:none; color:var(--t2); padding:8px 12px; font-size:13px; cursor:pointer; border-radius:8px; text-align:right; transition:.2s; display:flex; align-items:center; gap:6px; }
 .user-dropdown button:hover { background:var(--bg4); color:#ef4444; }
 #genreBar { background:var(--bg2); border-bottom:.5px solid var(--border); padding:8px 16px; overflow-x:auto; white-space:nowrap; display:flex; gap:8px; }
