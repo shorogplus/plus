@@ -260,27 +260,29 @@ async function logout() {
     if (notificationChannel) notificationChannel.unsubscribe();
 }
 function updateUIAfterLogin() {
-    var userBtn = $('userBtn');
-    var userInfo = $('userInfo');
-    var notifBtn = $('notifBtn');
-    if (userBtn) userBtn.style.display = 'none';
-    if (userInfo) userInfo.style.display = 'flex';
-    if (notifBtn) notifBtn.style.display = 'flex';
-    var userEmoji = $('userEmoji');
-    if (userEmoji) userEmoji.textContent = (currentUser.user_metadata && currentUser.user_metadata.avatar) ? currentUser.user_metadata.avatar : '😊';
-    var userName = $('userName');
-    if (userName) userName.textContent = (currentUser.user_metadata && currentUser.user_metadata.display_name) ? currentUser.user_metadata.display_name : currentUser.email;
+    $('userBtn').style.display='none'; $('userInfo').style.display='flex'; $('notifBtn').style.display='flex';
+    const avatarIcon = currentUser.user_metadata?.avatar || '😊';
+    // تحويل الإيموجي إلى أيقونة Font Awesome مناسبة
+    let iconHtml = '<i class="fa-regular fa-circle-user"></i>';
+    if (avatarIcon === '😊') iconHtml = '<i class="fa-regular fa-face-smile"></i>';
+    else if (avatarIcon === '👨') iconHtml = '<i class="fa-solid fa-user-tie"></i>';
+    else if (avatarIcon === '👩') iconHtml = '<i class="fa-solid fa-user"></i>';
+    else if (avatarIcon === '👦') iconHtml = '<i class="fa-solid fa-child"></i>';
+    else if (avatarIcon === '👧') iconHtml = '<i class="fa-solid fa-child"></i>';
+    else if (avatarIcon === '🦸‍♂️') iconHtml = '<i class="fa-solid fa-mask"></i>';
+    else if (avatarIcon === '🦸‍♀️') iconHtml = '<i class="fa-solid fa-mask"></i>';
+    else if (avatarIcon === '🥷') iconHtml = '<i class="fa-solid fa-user-ninja"></i>';
+    else if (avatarIcon === '🧛‍♂️') iconHtml = '<i class="fa-solid fa-vampire"></i>';
+    else if (avatarIcon === '🧚‍♀️') iconHtml = '<i class="fa-solid fa-fairy"></i>';
+    else if (avatarIcon === '🕵️‍♂️') iconHtml = '<i class="fa-solid fa-user-secret"></i>';
+    else if (avatarIcon === '🧑‍🚀') iconHtml = '<i class="fa-solid fa-astronaut"></i>';
+    else if (avatarIcon === '🦁') iconHtml = '<i class="fa-solid fa-lion"></i>';
+    else if (avatarIcon === '🐼') iconHtml = '<i class="fa-solid fa-panda"></i>';
+    else if (avatarIcon === '🦊') iconHtml = '<i class="fa-solid fa-fox"></i>';
+    else if (avatarIcon === '🦉') iconHtml = '<i class="fa-solid fa-owl"></i>';
+    $('userEmoji').innerHTML = iconHtml;
+    $('userName').textContent = currentUser.user_metadata?.display_name||currentUser.email;
 }
-function toggleUserDropdown() {
-    var dd = $('userDropdown');
-    if (dd) dd.classList.toggle('show');
-}
-document.addEventListener('click', function(e) {
-    if (!e.target.closest('#userInfo')) {
-        var dd = $('userDropdown');
-        if (dd) dd.classList.remove('show');
-    }
-});
 
 // ========== DATA LOADING & REALTIME ==========
 var notificationChannel = null;
@@ -534,9 +536,9 @@ function renderFriendRequestsUI() {
         return;
     }
     list.innerHTML = friendRequests.map(function(req) {
-        var sAv = (req.sender && req.sender.avatar) ? req.sender.avatar : '👤';
+        var avatarHtml = avatarToIcon((req.sender && req.sender.avatar) || '👤');
         var sName = (req.sender && req.sender.display_name) ? req.sender.display_name : 'مستخدم';
-        return '<div class="request-item"><div class="finfo"><div class="favatar">' + sAv + '</div><span>' + sName + '</span></div><div style="display:flex;gap:6px;"><button class="login-btn" style="width:auto;padding:4px 8px;font-size:10px;background:var(--green);" onclick="acceptFriendRequest(\'' + req.id + '\', \'' + req.sender_id + '\')">✅</button><button class="login-btn" style="width:auto;padding:4px 8px;font-size:10px;background:#ef4444;" onclick="rejectFriendRequest(\'' + req.id + '\', \'' + req.sender_id + '\')">❌</button></div></div>';
+        return '<div class="request-item"><div class="finfo"><div class="favatar">' + avatarHtml + '</div><span>' + sName + '</span></div><div style="display:flex;gap:6px;"><button class="login-btn" style="width:auto;padding:4px 8px;font-size:10px;background:var(--green);" onclick="acceptFriendRequest(\'' + req.id + '\', \'' + req.sender_id + '\')">✅</button><button class="login-btn" style="width:auto;padding:4px 8px;font-size:10px;background:#ef4444;" onclick="rejectFriendRequest(\'' + req.id + '\', \'' + req.sender_id + '\')">❌</button></div></div>';
     }).join('');
 }
 async function acceptFriendRequest(requestId, senderId) {
@@ -586,7 +588,8 @@ function renderFriendsListUI() {
         return;
     }
     list.innerHTML = friends.map(function(f) {
-        return '<div class="friend-item"><div class="finfo"><div class="favatar">' + (f.avatar || '👤') + '</div><span>' + f.display_name + '</span></div><div style="display:flex;gap:6px;"><button class="login-btn" style="width:auto;padding:4px 10px;font-size:10px;" onclick="openDM(\'' + f.id + '\',\'' + f.display_name + '\')">💬</button><button class="login-btn" style="width:auto;padding:4px 10px;font-size:10px;background:transparent;color:#ef4444;border:1px solid #ef4444" onclick="removeFriend(\'' + f.id + '\')">🗑️</button></div></div>';
+        var avatarHtml = avatarToIcon(f.avatar || '👤');
+        return '<div class="friend-item"><div class="finfo"><div class="favatar">' + avatarHtml + '</div><span>' + f.display_name + '</span></div><div style="display:flex;gap:6px;"><button class="login-btn" style="width:auto;padding:4px 10px;font-size:10px;" onclick="openDM(\'' + f.id + '\',\'' + f.display_name + '\')">💬</button><button class="login-btn" style="width:auto;padding:4px 10px;font-size:10px;background:transparent;color:#ef4444;border:1px solid #ef4444" onclick="removeFriend(\'' + f.id + '\')">🗑️</button></div></div>';
     }).join('');
 }
 async function removeFriend(friendId) {
@@ -1508,26 +1511,57 @@ function openWatchPartyUI() {
     }
 }
 function updateUsersListBroadcast() {
-    var usersList = $('wpUsersList');
-    if (!usersList) return;
-    var existingItems = usersList.querySelectorAll('.wp-user-item');
-    for (var i = 0; i < existingItems.length; i++) existingItems[i].remove();
-    for (var i = 0; i < wpMembers.length; i++) {
-        var m = wpMembers[i];
-        var userDiv = document.createElement('div');
-        userDiv.className = 'wp-user-item';
-        // تحديد ما إذا كان هذا العضو هو المضيف الحقيقي (wpHostId)
-        var isThisHost = (wpHostId !== null && m.userId === wpHostId);
-        var hostBadge = isThisHost ? '<span class="host-badge">المضيف</span>' : '';
-        userDiv.innerHTML = '<div class="user-name"><span class="user-dot"></span><span>' + m.displayName + '</span>' + (m.userId === currentUser.id ? ' (أنت)' : '') + hostBadge + '</div>';
-        usersList.appendChild(userDiv);
-    }
+    const usersList = $('wpUsersList');
+    usersList.querySelectorAll('.wp-user-item').forEach(el => el.remove());
+    const myName = currentUser?.user_metadata?.display_name || 'أنا';
+    const myAvatar = currentUser?.user_metadata?.avatar || '😊';
+    const myIcon = avatarToIcon(myAvatar);
+    const myDiv = document.createElement('div');
+    myDiv.className = 'wp-user-item';
+    myDiv.innerHTML = `<div class="user-name"><span class="user-dot"></span><span>${myIcon}</span><span>${myName}</span>${wpIsHost ? '<span class="host-badge">المضيف</span>' : ''}</div>`;
+    usersList.appendChild(myDiv);
+    wpMembers.forEach(m => {
+        if (m.userId !== currentUser?.id) {
+            const userIcon = avatarToIcon(m.avatar || '👤');
+            const userDiv = document.createElement('div');
+            userDiv.className = 'wp-user-item';
+            userDiv.innerHTML = `<div class="user-name"><span class="user-dot"></span><span>${userIcon}</span><span>${m.displayName}</span></div>`;
+            usersList.appendChild(userDiv);
+        }
+    });
+}
+// أضف هذه الدالة المساعدة:
+function avatarToIcon(emoji) {
+    const map = {
+        '😊': '<i class="fa-regular fa-face-smile"></i>',
+        '👨': '<i class="fa-solid fa-user-tie"></i>',
+        '👩': '<i class="fa-solid fa-user"></i>',
+        '👦': '<i class="fa-solid fa-child"></i>',
+        '👧': '<i class="fa-solid fa-child"></i>',
+        '🦸‍♂️': '<i class="fa-solid fa-mask"></i>',
+        '🦸‍♀️': '<i class="fa-solid fa-mask"></i>',
+        '🥷': '<i class="fa-solid fa-user-ninja"></i>',
+        '🧛‍♂️': '<i class="fa-solid fa-vampire"></i>',
+        '🧚‍♀️': '<i class="fa-solid fa-fairy"></i>',
+        '🕵️‍♂️': '<i class="fa-solid fa-user-secret"></i>',
+        '🧑‍🚀': '<i class="fa-solid fa-astronaut"></i>',
+        '🦁': '<i class="fa-solid fa-lion"></i>',
+        '🐼': '<i class="fa-solid fa-panda"></i>',
+        '🦊': '<i class="fa-solid fa-fox"></i>',
+        '🦉': '<i class="fa-solid fa-owl"></i>',
+        '👑': '<i class="fa-solid fa-crown"></i>',
+        '👤': '<i class="fa-regular fa-circle-user"></i>'
+    };
+    return map[emoji] || '<i class="fa-regular fa-circle-user"></i>';
 }
 function appendChatMessage(name, msg, isMe) {
-    var chat = $('wpChat'); if (!chat) return;
-    var div = document.createElement('div');
+    const chat = $('wpChat');
+    if (!chat) return;
+    const div = document.createElement('div');
     div.className = 'wp-chat-msg';
-    div.innerHTML = '<div class="avatar">' + (isMe ? '😊' : '👤') + '</div><div class="content"><div class="name">' + name + '</div>' + msg + '</div>';
+    const avatarIcon = isMe ? (currentUser?.user_metadata?.avatar || '😊') : '👤';
+    const iconHtml = avatarToIcon(avatarIcon);
+    div.innerHTML = `<div class="avatar">${iconHtml}</div><div class="content"><div class="name">${name}</div>${msg}</div>`;
     chat.appendChild(div);
     chat.scrollTop = chat.scrollHeight;
 }
