@@ -1428,7 +1428,9 @@ function dismissClickPrompt() {
 }
 function initBroadcast(asHost) {
     if (wpChannel) wpChannel.unsubscribe();
-    wpChannel = window.supabase.channel('room-' + wpRoomCode, { config: { broadcast: { ack: true, self: false } } });
+    // إنشاء عميل Supabase جديد للقناة (بدون token، لكنه كافٍ للبث)
+    const tempClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    wpChannel = tempClient.channel('room-' + wpRoomCode, { config: { broadcast: { ack: true, self: false } } });
     wpChannel.on('broadcast', { event: 'sync' }, function(payloadData) {
         var payload = payloadData.payload;
         if (!wpIsHost) {
@@ -1441,6 +1443,32 @@ function initBroadcast(asHost) {
             }
         }
     });
+    wpChannel.on('broadcast', { event: 'chat' }, function(payloadData) {
+        var payload = payloadData.payload;
+        appendChatMessage(payload.displayName, payload.message, false);
+    });
+    wpChannel.on('broadcast', { event: 'member_join' }, function(payloadData) {
+        var payload = payloadData.payload;
+        if (!wpMembers.some(function(m) { return m.userId === payload.userId; })) {
+            wpMembers.push(payload);
+            updateUsersListBroadcast();
+        }
+    });
+    wpChannel.on('broadcast', { event: 'member_leave' }, function(payloadData) {
+        var payload = payloadData.payload;
+        wpMembers = wpMembers.filter(function(m) { return m.userId !== payload.userId; });
+        updateUsersListBroadcast();
+    });
+    wpChannel.subscribe(async function(status) {
+        if (status === 'SUBSCRIBED' && asHost) {
+            wpChannel.send({ type: 'broadcast', event: 'member_join', payload: { userId: currentUser.id, displayName: (currentUser.user_metadata && currentUser.user_metadata.display_name) ? currentUser.user_metadata.display_name : 'المضيف', avatar: (currentUser.user_metadata && currentUser.user_metadata.avatar) ? currentUser.user_metadata.avatar : '👑' } });
+            if (!wpMembers.some(function(m) { return m.userId === currentUser.id; })) {
+                wpMembers.push({ userId: currentUser.id, displayName: (currentUser.user_metadata && currentUser.user_metadata.display_name) ? currentUser.user_metadata.display_name : 'المضيف', avatar: (currentUser.user_metadata && currentUser.user_metadata.avatar) ? currentUser.user_metadata.avatar : '👑' });
+                updateUsersListBroadcast();
+            }
+        }
+    });
+}
     wpChannel.on('broadcast', { event: 'chat' }, function(payloadData) {
         var payload = payloadData.payload;
         appendChatMessage(payload.displayName, payload.message, false);
