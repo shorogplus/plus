@@ -625,7 +625,7 @@ function initBroadcast(asHost) {
     wpChannel.on('broadcast', { event: 'member_join' }, ({ payload }) => {
         if (!wpMembers.some(m => m.userId === payload.userId)) {
             wpMembers.push(payload);
-            updateUsersListBroadcast();
+            updateUsersListBroadcast();  // تحديث القائمة فوراً
         }
     });
     wpChannel.on('broadcast', { event: 'member_leave' }, ({ payload }) => {
@@ -634,7 +634,13 @@ function initBroadcast(asHost) {
     });
     wpChannel.subscribe(async (status) => {
         if (status === 'SUBSCRIBED' && asHost) {
+            // إرسال إعلان انضمام المضيف
             wpChannel.send({ type: 'broadcast', event: 'member_join', payload: { userId: currentUser.id, displayName: currentUser.user_metadata?.display_name || 'المضيف', avatar: currentUser.user_metadata?.avatar || '👑' } });
+            // إضافة المضيف إلى القائمة المحلية أيضاً
+            if (!wpMembers.some(m => m.userId === currentUser.id)) {
+                wpMembers.push({ userId: currentUser.id, displayName: currentUser.user_metadata?.display_name || 'المضيف', avatar: currentUser.user_metadata?.avatar || '👑' });
+                updateUsersListBroadcast();
+            }
         }
     });
 }
@@ -703,6 +709,9 @@ function openWatchPartyUI() {
     $('wpChat').innerHTML = '';
     $('wpEndBtn').style.display = wpIsHost ? 'flex' : 'none';
     wpMembers = [];
+    // إضافة المستخدم الحالي إلى القائمة فوراً (حتى لو كان مضيفاً أو ضيفاً)
+    const currentUserObj = { userId: currentUser.id, displayName: currentUser.user_metadata?.display_name || currentUser.email.split('@')[0], avatar: currentUser.user_metadata?.avatar || '😊' };
+    wpMembers.push(currentUserObj);
     updateUsersListBroadcast();
     if (wpIsHost) {
         window.addEventListener('message', handlePlayerMessage);
@@ -711,18 +720,12 @@ function openWatchPartyUI() {
 function updateUsersListBroadcast() {
     const usersList = $('wpUsersList');
     usersList.querySelectorAll('.wp-user-item').forEach(el => el.remove());
-    const myName = currentUser?.user_metadata?.display_name || 'أنا';
-    const myDiv = document.createElement('div');
-    myDiv.className = 'wp-user-item';
-    myDiv.innerHTML = `<div class="user-name"><span class="user-dot"></span><span>${myName}</span>${wpIsHost ? '<span class="host-badge">المضيف</span>' : ''}</div>`;
-    usersList.appendChild(myDiv);
+    // عرض جميع الأعضاء
     wpMembers.forEach(m => {
-        if (m.userId !== currentUser?.id) {
-            const userDiv = document.createElement('div');
-            userDiv.className = 'wp-user-item';
-            userDiv.innerHTML = `<div class="user-name"><span class="user-dot"></span><span>${m.displayName}</span></div>`;
-            usersList.appendChild(userDiv);
-        }
+        const userDiv = document.createElement('div');
+        userDiv.className = 'wp-user-item';
+        userDiv.innerHTML = `<div class="user-name"><span class="user-dot"></span><span>${m.displayName}</span>${m.userId === currentUser?.id ? ' (أنت)' : ''}${wpIsHost && m.userId === currentUser?.id ? '<span class="host-badge">المضيف</span>' : ''}</div>`;
+        usersList.appendChild(userDiv);
     });
 }
 function appendChatMessage(name, msg, isMe) {
@@ -788,7 +791,10 @@ function showJoinError(msg) { $('joinSplashText').textContent = ''; $('joinSplas
 function hideJoinSplash() { $('joinSplash').classList.remove('active'); }
 function retryJoinRoom() { const code = pendingRoomCode || new URLSearchParams(window.location.search).get('room'); if (code) { showJoinSplash('🎉 جاري الانضمام...'); joinWatchParty(code); } }
 function copyInviteLink() { navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?room=${wpRoomCode}`).then(() => showToast('📋 تم النسخ')); }
-
+function dismissClickPrompt() {
+    const promptDiv = document.getElementById('wpClickPrompt');
+    if (promptDiv) promptDiv.style.display = 'none';
+}
 // ========== MISC ==========
 async function checkSession() {
     const saved = localStorage.getItem('shush_session');
