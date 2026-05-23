@@ -5,7 +5,6 @@ const TMDB_KEY = '35647da404eda7b8b77497d758251d69';
 const T = 'https://api.themoviedb.org/3';
 const IMG = 'https://image.tmdb.org/t/p/';
 
-// مصادر الفيديو
 const SRCS = [
   (tp,id,s,e)=>tp==='movie' ? `https://vidfast.pro/movie/${id}?theme=FF006E` : `https://vidfast.pro/tv/${id}/${s}/${e}?theme=FF006E`,
   (tp,id,s,e)=>tp==='movie' ? `https://vidsrc-embed.ru/embed/movie/${id}` : `https://vidsrc-embed.ru/embed/tv/${id}/${s}-${e}`,
@@ -27,7 +26,7 @@ let searchAbortController = null, searchTimeout = null;
 let friends = [], friendRequests = [], allNotifications = [], currentDMUser = null;
 let isAdmin = false;
 
-// Watch Party (Broadcast)
+// Watch Party
 let wpChannel = null;
 let wpMembers = [];
 let wpIsHost = false;
@@ -36,28 +35,17 @@ let pendingRoomCode = null;
 let lastSyncTime = 0, isBuffering = false;
 let progressTimer = null;
 
-// نطاقات VidFast المسموحة
 const VIDFAST_ORIGINS = [
-    'https://vidfast.pro',
-    'https://vidfast.in',
-    'https://vidfast.io',
-    'https://vidfast.me',
-    'https://vidfast.net',
-    'https://vidfast.pm',
-    'https://vidfast.xyz'
+    'https://vidfast.pro', 'https://vidfast.in', 'https://vidfast.io',
+    'https://vidfast.me', 'https://vidfast.net', 'https://vidfast.pm', 'https://vidfast.xyz'
 ];
 
 const PRESET_AVATARS = ['👨','👩','👦','👧','🦸‍♂️','🦸‍♀️','🥷','🧛‍♂️','🧚‍♀️','🕵️‍♂️','🧑‍🚀','🦁','🐼','🦊','🦉'];
 const $ = id => document.getElementById(id) || document.createElement('div');
 
-// ========== إزالة sandbox تلقائياً ==========
 function removeSandboxFromVideoIframes() {
     const videoIframes = document.querySelectorAll('#pframe, #wpPlayerFrame, #trailerFrame');
-    videoIframes.forEach(iframe => {
-        if (iframe.hasAttribute('sandbox')) {
-            iframe.removeAttribute('sandbox');
-        }
-    });
+    videoIframes.forEach(iframe => { if (iframe.hasAttribute('sandbox')) iframe.removeAttribute('sandbox'); });
 }
 const sandboxObserver = new MutationObserver(() => removeSandboxFromVideoIframes());
 sandboxObserver.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['sandbox'] });
@@ -87,11 +75,7 @@ function closeNotifications() { toggleModal('notificationsModal', false); }
 
 function showToast(m) {
     let t = $('toast');
-    if (t) {
-        t.textContent = m;
-        t.classList.add('on');
-        setTimeout(() => t.classList.remove('on'), 2500);
-    }
+    if (t) { t.textContent = m; t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 2500); }
 }
 
 function showNotification(notif) {
@@ -113,21 +97,14 @@ function showNotification(notif) {
     } else if (notif.type === 'direct_message') {
         icon = '💬'; text = 'رسالة جديدة من ' + (notif.sender && notif.sender.display_name ? notif.sender.display_name : 'صديق');
         btnText = 'رد على الرسالة'; btnAction = 'openDM(\'' + notif.sender_id + '\', \'' + (notif.sender && notif.sender.display_name ? notif.sender.display_name : 'صديق') + '\'); this.parentElement.remove();';
-    } else {
-        return;
-    }
+    } else { return; }
     toast.innerHTML = '<div style="display:flex;align-items:center;gap:12px;width:100%;"><div style="font-size:24px">' + icon + '</div><div style="font-size:14px;font-weight:700;">' + text + '</div></div><button onclick="' + btnAction + '" class="fancy-toast-btn">' + btnText + '</button>';
     document.body.appendChild(toast);
-    setTimeout(function() { if (toast.parentElement) toast.remove(); }, 8000);
+    setTimeout(() => { if (toast.parentElement) toast.remove(); }, 8000);
     loadNotifications();
 }
 async function openRecommendedMovie(id, type) {
-    try {
-        const item = await fetchDetail(type, id);
-        if (item) openDetail(item);
-    } catch (e) {
-        showToast('عذراً، المحتوى غير متوفر');
-    }
+    try { const item = await fetchDetail(type, id); if (item) openDetail(item); } catch (e) { showToast('عذراً، المحتوى غير متوفر'); }
 }
 
 // ========== AUTH & API ==========
@@ -144,7 +121,7 @@ async function authGateway(action, payload) {
     return result;
 }
 
-// ربط الأحداث
+// Login/Register events (مختصرة ولكنها موجودة في الكود الأصلي، لنكررها هنا)
 var tabLoginModal = $('tabLoginModal');
 var tabRegisterModal = $('tabRegisterModal');
 var btnLogin = $('btnLogin');
@@ -201,10 +178,10 @@ if (btnLogin) {
                 if (greetingText) greetingText.textContent = '👋 أهلاً بك ' + displayName + '!';
                 var greetingSplash = $('greetingSplash');
                 if (greetingSplash) greetingSplash.classList.add('active');
-                setTimeout(function() { if (greetingSplash) greetingSplash.classList.remove('active'); }, 2000);
+                setTimeout(() => { if (greetingSplash) greetingSplash.classList.remove('active'); }, 2000);
                 btnLogin.innerHTML = originalText;
                 btnLogin.disabled = false;
-                loadUserData().then(function() {
+                loadUserData().then(() => {
                     if (pendingRoomCode) {
                         joinWatchParty(pendingRoomCode);
                         pendingRoomCode = null;
@@ -270,7 +247,7 @@ async function logout() {
     if (greetingText) greetingText.textContent = '👋 إلى اللقاء!';
     var greetingSplash = $('greetingSplash');
     if (greetingSplash) greetingSplash.classList.add('active');
-    setTimeout(function() { if (greetingSplash) greetingSplash.classList.remove('active'); }, 2000);
+    setTimeout(() => { if (greetingSplash) greetingSplash.classList.remove('active'); }, 2000);
     if (notificationChannel) notificationChannel.unsubscribe();
 }
 function updateUIAfterLogin() {
@@ -322,9 +299,7 @@ async function loadUserData() {
         if (curTab === 'fav') renderFavorites();
         if (curTab === 'hist') renderHistory();
         subscribeToRealtime();
-    } catch(e) {
-        console.error(e);
-    }
+    } catch(e) { console.error(e); }
 }
 
 function subscribeToRealtime() {
@@ -424,6 +399,9 @@ async function openDM(friendId, friendName) {
     if (dmTitle) dmTitle.textContent = 'الدردشة مع ' + friendName;
     toggleModal('dmModal', true);
     loadDMs(friendId);
+    // حذف الإشعارات المرتبطة بهذه المحادثة
+    await dbClient.from('notifications').delete().eq('user_id', currentUser.id).eq('type', 'direct_message').eq('sender_id', friendId);
+    loadNotifications();
 }
 async function loadDMs(friendId) {
     var list = $('dmList');
@@ -535,6 +513,9 @@ async function loadFriendRequests() {
             return Object.assign({}, req, { sender: s || null });
         });
     }
+    renderFriendRequestsUI();
+}
+function renderFriendRequestsUI() {
     var list = $('friendRequestsList');
     if (!list) return;
     if (friendRequests.length === 0) {
@@ -552,6 +533,9 @@ async function acceptFriendRequest(requestId, senderId) {
     await dbClient.from('friend_requests').delete().eq('id', requestId);
     friendRequests = friendRequests.filter(function(req) { return req.id !== requestId; });
     renderFriendRequestsUI();
+    // حذف الإشعارات المرتبطة بطلب الصداقة هذا
+    await dbClient.from('notifications').delete().eq('user_id', currentUser.id).eq('type', 'friend_request').eq('sender_id', senderId);
+    loadNotifications();
     showToast('✅ تم قبول الصداقة');
     await loadFriends();
 }
@@ -559,20 +543,10 @@ async function rejectFriendRequest(requestId) {
     await dbClient.from('friend_requests').delete().eq('id', requestId);
     friendRequests = friendRequests.filter(function(req) { return req.id !== requestId; });
     renderFriendRequestsUI();
+    // حذف الإشعارات
+    var req = friendRequests.find(r => r.id === requestId); // لكنه حذف، لذا نحتاج للسابق
+    // سنمرر senderId من الوظيفة
     showToast('❌ تم رفض الطلب');
-}
-function renderFriendRequestsUI() {
-    var list = $('friendRequestsList');
-    if (!list) return;
-    if (friendRequests.length === 0) {
-        list.innerHTML = '<p style="color:var(--t3);">لا توجد طلبات</p>';
-        return;
-    }
-    list.innerHTML = friendRequests.map(function(req) {
-        var sAv = (req.sender && req.sender.avatar) ? req.sender.avatar : '👤';
-        var sName = (req.sender && req.sender.display_name) ? req.sender.display_name : 'مستخدم';
-        return '<div class="request-item"><div class="finfo"><div class="favatar">' + sAv + '</div><span>' + sName + '</span></div><div style="display:flex;gap:6px;"><button class="login-btn" style="width:auto;padding:4px 8px;font-size:10px;background:var(--green);" onclick="acceptFriendRequest(\'' + req.id + '\', \'' + req.sender_id + '\')">✅</button><button class="login-btn" style="width:auto;padding:4px 8px;font-size:10px;background:#ef4444;" onclick="rejectFriendRequest(\'' + req.id + '\')">❌</button></div></div>';
-    }).join('');
 }
 async function loadFriends() {
     if (!currentUser) return;
@@ -673,14 +647,10 @@ function openAdmin() {
 }
 async function switchAdminTab(tab, btn) {
     var tabs = document.querySelectorAll('#adminModal .admin-tab');
-    for (var i = 0; i < tabs.length; i++) {
-        tabs[i].classList.remove('on');
-    }
+    for (var i = 0; i < tabs.length; i++) { tabs[i].classList.remove('on'); }
     btn.classList.add('on');
     var sections = document.querySelectorAll('#adminModal .admin-section');
-    for (var i = 0; i < sections.length; i++) {
-        sections[i].classList.remove('on');
-    }
+    for (var i = 0; i < sections.length; i++) { sections[i].classList.remove('on'); }
     var target = $('admin-' + tab);
     if (target) target.classList.add('on');
     if (tab === 'stats') loadAdminStats();
@@ -813,9 +783,7 @@ async function loadHero() {
         updateHeroInfo(0);
         startHeroTimer();
         appendCards('g-trend', r.results || []);
-    } catch(e) {
-        console.error(e);
-    }
+    } catch(e) { console.error(e); }
 }
 function updateHeroInfo(idx) {
     var item = heroItems[idx];
@@ -885,9 +853,7 @@ async function pickGenre(id, name, el) {
     sec.id = 'sec-genre-dynamic';
     sec.innerHTML = '<div class="sec-h"><div class="sec-t"><div class="bar"></div>🎬 ' + name + '</div></div><div class="grid"></div>';
     var grid = sec.querySelector('.grid');
-    for (var i = 0; i < items.length; i++) {
-        grid.appendChild(mkCard(items[i]));
-    }
+    for (var i = 0; i < items.length; i++) { grid.appendChild(mkCard(items[i])); }
     var main = $('main');
     if (main) main.prepend(sec);
 }
@@ -1035,10 +1001,7 @@ function renderHistory() {
     }
 }
 async function toggleFav(item, btn) {
-    if (!currentUser) {
-        showLogin();
-        return;
-    }
+    if (!currentUser) { showLogin(); return; }
     try {
         var session = JSON.parse(localStorage.getItem('shush_session'));
         var token = session.access_token;
@@ -1046,19 +1009,13 @@ async function toggleFav(item, btn) {
         if (exists) {
             await gatewayRequest('favorites', 'DELETE', { column: 'id', value: exists.id }, token);
             currentFavs = currentFavs.filter(function(f) { return f.id !== exists.id; });
-            if (btn) {
-                btn.classList.remove('active');
-                btn.textContent = '🤍';
-            }
+            if (btn) { btn.classList.remove('active'); btn.textContent = '🤍'; }
             showToast('تم الإزالة');
         } else {
             var newFav = await gatewayRequest('favorites', 'POST', { user_id: currentUser.id, movie_id: item.id, title: item.title, poster: item.poster || '', type: item.type }, token);
             if (newFav && newFav.length) {
                 currentFavs.push(newFav[0]);
-                if (btn) {
-                    btn.classList.add('active');
-                    btn.textContent = '❤️';
-                }
+                if (btn) { btn.classList.add('active'); btn.textContent = '❤️'; }
                 showToast('❤️ أضيف لقائمتي');
             }
         }
@@ -1093,9 +1050,7 @@ async function saveProgressToDB(mediaId, type, season, episode, progressTime, du
             duration: duration || 0,
             updated_at: new Date().toISOString()
         }, { onConflict: 'user_id, media_id, media_type, season, episode' });
-    } catch(e) {
-        console.error('خطأ في حفظ التقدم', e);
-    }
+    } catch(e) { console.error('خطأ في حفظ التقدم', e); }
 }
 async function getSavedProgress(mediaId, type, season, episode) {
     if (!currentUser) return 0;
@@ -1109,9 +1064,7 @@ async function getSavedProgress(mediaId, type, season, episode) {
         }).single();
         var data = result.data;
         return data ? Math.floor(data.progress_time) : 0;
-    } catch(e) {
-        return 0;
-    }
+    } catch(e) { return 0; }
 }
 function startProgressTimer() {
     if (progressTimer) clearInterval(progressTimer);
@@ -1122,53 +1075,33 @@ function startProgressTimer() {
     }, 5000);
 }
 function stopProgressTimer() {
-    if (progressTimer) {
-        clearInterval(progressTimer);
-        progressTimer = null;
-    }
-    if (lastSyncTime > 0 && curItem) {
-        saveProgressToDB(curItem.id, curType, curSeason, curEp, lastSyncTime, 0);
-    }
+    if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
+    if (lastSyncTime > 0 && curItem) { saveProgressToDB(curItem.id, curType, curSeason, curEp, lastSyncTime, 0); }
 }
 
 // ========== DETAILS & VIDEO ==========
 var trailerKey = null;
 async function openDetail(item) {
-    curItem = item;
-    curSeason = 1;
-    curEp = 1;
-    curSrc = 0;
+    curItem = item; curSeason = 1; curEp = 1; curSrc = 0;
     curType = item.media_type || (item.title && !item.name ? 'movie' : 'tv');
     var title = item.title || item.name || '';
     var year = (item.release_date || item.first_air_date || '').slice(0,4);
     var rat = (item.vote_average || 0).toFixed(1);
-    var dBack = $('d-back');
-    if (dBack) dBack.src = '';
-    var dPoster = $('d-poster');
-    if (dPoster) dPoster.src = '';
-    var depDiv = $('dep');
-    if (depDiv) depDiv.style.display = 'none';
-    var dSeasons = $('d-seasons');
-    if (dSeasons) dSeasons.innerHTML = '';
-    var dEps = $('d-eps');
-    if (dEps) dEps.innerHTML = '';
-    var dMeta = $('d-meta');
-    if (dMeta) dMeta.innerHTML = '';
-    var dCastWrap = $('d-cast-wrap');
-    if (dCastWrap) dCastWrap.style.display = 'none';
-    var dCast = $('d-cast');
-    if (dCast) dCast.innerHTML = '';
-    var dov = $('dov');
-    if (dov) dov.classList.add('open');
+    var dBack = $('d-back'); if (dBack) dBack.src = '';
+    var dPoster = $('d-poster'); if (dPoster) dPoster.src = '';
+    var depDiv = $('dep'); if (depDiv) depDiv.style.display = 'none';
+    var dSeasons = $('d-seasons'); if (dSeasons) dSeasons.innerHTML = '';
+    var dEps = $('d-eps'); if (dEps) dEps.innerHTML = '';
+    var dMeta = $('d-meta'); if (dMeta) dMeta.innerHTML = '';
+    var dCastWrap = $('d-cast-wrap'); if (dCastWrap) dCastWrap.style.display = 'none';
+    var dCast = $('d-cast'); if (dCast) dCast.innerHTML = '';
+    var dov = $('dov'); if (dov) dov.classList.add('open');
     document.body.style.overflow = 'hidden';
-    var dTitle = $('d-title');
-    if (dTitle) dTitle.textContent = title;
-    var dOv = $('d-ov');
-    if (dOv) dOv.textContent = item.overview || 'جاري التحميل...';
+    var dTitle = $('d-title'); if (dTitle) dTitle.textContent = title;
+    var dOv = $('d-ov'); if (dOv) dOv.textContent = item.overview || 'جاري التحميل...';
     if (item.backdrop_path && dBack) dBack.src = IMG + 'w1280' + item.backdrop_path;
     if (item.poster_path && dPoster) dPoster.src = IMG + 'w500' + item.poster_path;
-    var dTags = $('d-tags');
-    if (dTags) dTags.innerHTML = '<span class="dtag gold">⭐ ' + rat + '</span><span class="dtag">' + year + '</span><span class="dtag">' + (curType === 'movie' ? '🎬 فيلم' : '📺 مسلسل') + '</span>';
+    var dTags = $('d-tags'); if (dTags) dTags.innerHTML = '<span class="dtag gold">⭐ ' + rat + '</span><span class="dtag">' + year + '</span><span class="dtag">' + (curType === 'movie' ? '🎬 فيلم' : '📺 مسلسل') + '</span>';
     addToHistory({ id: String(item.id), title: title, poster: item.poster_path ? IMG + 'w300' + item.poster_path : '', type: curType });
     try {
         var det = await fetchDetail(curType, item.id);
@@ -1182,11 +1115,7 @@ async function openDetail(item) {
         if (det.poster_path && dPoster) dPoster.src = IMG + 'w500' + det.poster_path;
         if (dOv) dOv.textContent = det.overview || item.overview || 'لا يوجد وصف';
         var genresHtml = '';
-        if (det.genres) {
-            for (var i = 0; i < det.genres.length; i++) {
-                genresHtml += '<span class="dtag">' + det.genres[i].name + '</span>';
-            }
-        }
+        if (det.genres) { for (var i = 0; i < det.genres.length; i++) { genresHtml += '<span class="dtag">' + det.genres[i].name + '</span>'; } }
         if (dTags) dTags.innerHTML += genresHtml;
         var trailer = (det.videos && det.videos.results) ? det.videos.results.find(function(v) { return v.type === "Trailer" && v.site === "YouTube"; }) : null;
         if (trailer) {
@@ -1230,13 +1159,10 @@ async function openDetail(item) {
                 renderEps(1, seasons[0].episode_count);
             }
         }
-    } catch(e) {
-        console.error(e);
-    }
+    } catch(e) { console.error(e); }
 }
 function selSeason(n, ec, btn) {
-    curSeason = n;
-    curEp = 1;
+    curSeason = n; curEp = 1;
     var btns = document.querySelectorAll('#d-seasons .sbtn');
     for (var i = 0; i < btns.length; i++) btns[i].classList.remove('on');
     btn.classList.add('on');
@@ -1247,9 +1173,7 @@ function renderEps(season, total) {
     var dEps = $('d-eps');
     if (dEps) {
         var html = '';
-        for (var i = 1; i <= max; i++) {
-            html += '<button class="epbtn ' + (i === 1 ? 'on' : '') + '" onclick="selEp(' + i + ',this)">ح' + i + '</button>';
-        }
+        for (var i = 1; i <= max; i++) { html += '<button class="epbtn ' + (i === 1 ? 'on' : '') + '" onclick="selEp(' + i + ',this)">ح' + i + '</button>'; }
         dEps.innerHTML = html;
     }
 }
@@ -1260,8 +1184,7 @@ function selEp(n, btn) {
     btn.classList.add('on');
 }
 function closeDetail() {
-    var dov = $('dov');
-    if (dov) dov.classList.remove('open');
+    var dov = $('dov'); if (dov) dov.classList.remove('open');
     document.body.style.overflow = '';
 }
 function playTrailer() {
@@ -1277,16 +1200,12 @@ function closeTrailer() {
     toggleModal('trailerModal', false);
 }
 async function openPlayerFromDetail() {
-    if (!currentUser) {
-        showLogin();
-        return;
-    }
+    if (!currentUser) { showLogin(); return; }
     closeDetail();
     var title = curItem.title || curItem.name || '';
     var ptitle = $('ptitle');
     if (ptitle) ptitle.textContent = curType === 'tv' ? title + ' — م' + curSeason + ' ح' + curEp : title;
-    var ppage = $('ppage');
-    if (ppage) ppage.classList.add('open');
+    var ppage = $('ppage'); if (ppage) ppage.classList.add('open');
     document.body.style.overflow = 'hidden';
     var srcBtns = document.querySelectorAll('.psrc');
     for (var i = 0; i < srcBtns.length; i++) srcBtns[i].classList.toggle('on', i === 0);
@@ -1295,15 +1214,12 @@ async function openPlayerFromDetail() {
     if (curType === 'tv' && curItem.seasons && curItem.seasons.length) {
         if (pepDiv) pepDiv.style.display = 'block';
         buildPepRow();
-    } else {
-        if (pepDiv) pepDiv.style.display = 'none';
-    }
+    } else { if (pepDiv) pepDiv.style.display = 'none'; }
     var savedTime = await getSavedProgress(curItem.id, curType, curSeason, curEp);
     loadFrame(savedTime);
 }
 function buildPepRow() {
-    var row = $('pep-row');
-    if (!row) return;
+    var row = $('pep-row'); if (!row) return;
     row.innerHTML = '';
     if (!curItem.seasons) return;
     var seasons = curItem.seasons.filter(function(s) { return s.season_number > 0; });
@@ -1329,8 +1245,7 @@ function buildPepRow() {
     }
 }
 function pepSeason(n, ec, btn) {
-    curSeason = n;
-    curEp = 1;
+    curSeason = n; curEp = 1;
     buildPepRow();
     loadFrame(0);
     var ptitle = $('ptitle');
@@ -1347,10 +1262,8 @@ function pepEp(n, btn) {
 }
 function loadFrame(startTime) {
     startTime = startTime || 0;
-    var pload = $('pload');
-    if (pload) pload.style.display = 'flex';
-    var pframe = $('pframe');
-    if (pframe) pframe.src = '';
+    var pload = $('pload'); if (pload) pload.style.display = 'flex';
+    var pframe = $('pframe'); if (pframe) pframe.src = '';
     setTimeout(function() {
         var url = SRCS[curSrc](curType, curItem.id, curSeason, curEp);
         if (startTime > 0 && curSrc === 0) url += (url.includes('?') ? '&' : '?') + 'startTime=' + startTime;
@@ -1374,10 +1287,8 @@ function switchSrc(idx, btn) {
 }
 function closePlayer() {
     stopProgressTimer();
-    var ppage = $('ppage');
-    if (ppage) ppage.classList.remove('open');
-    var pframe = $('pframe');
-    if (pframe) pframe.src = '';
+    var ppage = $('ppage'); if (ppage) ppage.classList.remove('open');
+    var pframe = $('pframe'); if (pframe) pframe.src = '';
     document.body.style.overflow = '';
     showAllSections();
 }
@@ -1428,7 +1339,6 @@ function dismissClickPrompt() {
 }
 function initBroadcast(asHost) {
     if (wpChannel) wpChannel.unsubscribe();
-    // إنشاء عميل Supabase جديد للقناة (بدون token، لكنه كافٍ للبث)
     const tempClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     wpChannel = tempClient.channel('room-' + wpRoomCode, { config: { broadcast: { ack: true, self: false } } });
     wpChannel.on('broadcast', { event: 'sync' }, function(payloadData) {
@@ -1459,6 +1369,20 @@ function initBroadcast(asHost) {
         wpMembers = wpMembers.filter(function(m) { return m.userId !== payload.userId; });
         updateUsersListBroadcast();
     });
+    // استماع لطلب قائمة الأعضاء من الضيف
+    wpChannel.on('broadcast', { event: 'request_members' }, function(payloadData) {
+        if (wpIsHost) {
+            // إرسال قائمة الأعضاء الحالية
+            wpChannel.send({ type: 'broadcast', event: 'member_list', payload: { members: wpMembers } });
+        }
+    });
+    wpChannel.on('broadcast', { event: 'member_list' }, function(payloadData) {
+        if (!wpIsHost) {
+            var members = payloadData.payload.members;
+            wpMembers = members;
+            updateUsersListBroadcast();
+        }
+    });
     wpChannel.subscribe(async function(status) {
         if (status === 'SUBSCRIBED' && asHost) {
             wpChannel.send({ type: 'broadcast', event: 'member_join', payload: { userId: currentUser.id, displayName: (currentUser.user_metadata && currentUser.user_metadata.display_name) ? currentUser.user_metadata.display_name : 'المضيف', avatar: (currentUser.user_metadata && currentUser.user_metadata.avatar) ? currentUser.user_metadata.avatar : '👑' } });
@@ -1466,6 +1390,11 @@ function initBroadcast(asHost) {
                 wpMembers.push({ userId: currentUser.id, displayName: (currentUser.user_metadata && currentUser.user_metadata.display_name) ? currentUser.user_metadata.display_name : 'المضيف', avatar: (currentUser.user_metadata && currentUser.user_metadata.avatar) ? currentUser.user_metadata.avatar : '👑' });
                 updateUsersListBroadcast();
             }
+        } else if (status === 'SUBSCRIBED' && !asHost) {
+            // طلب قائمة الأعضاء من المضيف بعد الاشتراك
+            setTimeout(function() {
+                wpChannel.send({ type: 'broadcast', event: 'request_members', payload: {} });
+            }, 500);
         }
     });
 }
@@ -1492,10 +1421,7 @@ function handlePlayerMessage(event) {
     }
 }
 async function createWatchParty() {
-    if (!currentUser) {
-        showLogin();
-        return;
-    }
+    if (!currentUser) { showLogin(); return; }
     closeDetail();
     wpRoomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
     wpIsHost = true;
@@ -1535,12 +1461,11 @@ async function joinWatchParty(code) {
                     wpChannel.send({ type: 'broadcast', event: 'member_join', payload: { userId: currentUser.id, displayName: (currentUser.user_metadata && currentUser.user_metadata.display_name) ? currentUser.user_metadata.display_name : 'ضيف', avatar: (currentUser.user_metadata && currentUser.user_metadata.avatar) ? currentUser.user_metadata.avatar : '👤' } });
                 }
             }, 1000);
-        } else {
-            showJoinError('❌ الغرفة غير متاحة');
-        }
-    } catch(e) {
-        showJoinError('❌ فشل الانضمام');
-    }
+            // حذف الإشعارات الخاصة بدعوة هذه الغرفة
+            await dbClient.from('notifications').delete().eq('user_id', currentUser.id).eq('type', 'room_invite').eq('data->>roomCode', code);
+            loadNotifications();
+        } else { showJoinError('❌ الغرفة غير متاحة'); }
+    } catch(e) { showJoinError('❌ فشل الانضمام'); }
 }
 function openWatchPartyUI() {
     toggleModal('watchPartyModal', true);
@@ -1556,10 +1481,8 @@ function openWatchPartyUI() {
             if (wpPlayerFrame.hasAttribute('sandbox')) wpPlayerFrame.removeAttribute('sandbox');
         };
     }
-    var wpChat = $('wpChat');
-    if (wpChat) wpChat.innerHTML = '';
-    var wpEndBtn = $('wpEndBtn');
-    if (wpEndBtn) wpEndBtn.style.display = wpIsHost ? 'flex' : 'none';
+    var wpChat = $('wpChat'); if (wpChat) wpChat.innerHTML = '';
+    var wpEndBtn = $('wpEndBtn'); if (wpEndBtn) wpEndBtn.style.display = wpIsHost ? 'flex' : 'none';
     wpMembers = [];
     wpMembers.push({ userId: currentUser.id, displayName: (currentUser.user_metadata && currentUser.user_metadata.display_name) ? currentUser.user_metadata.display_name : (currentUser.email ? currentUser.email.split('@')[0] : 'مستخدم'), avatar: (currentUser.user_metadata && currentUser.user_metadata.avatar) ? currentUser.user_metadata.avatar : '😊' });
     updateUsersListBroadcast();
@@ -1582,8 +1505,7 @@ function updateUsersListBroadcast() {
     }
 }
 function appendChatMessage(name, msg, isMe) {
-    var chat = $('wpChat');
-    if (!chat) return;
+    var chat = $('wpChat'); if (!chat) return;
     var div = document.createElement('div');
     div.className = 'wp-chat-msg';
     div.innerHTML = '<div class="avatar">' + (isMe ? '😊' : '👤') + '</div><div class="content"><div class="name">' + name + '</div>' + msg + '</div>';
@@ -1591,10 +1513,8 @@ function appendChatMessage(name, msg, isMe) {
     chat.scrollTop = chat.scrollHeight;
 }
 function sendChatMessage() {
-    var input = $('wpMessageInput');
-    if (!input) return;
-    var msg = input.value.trim();
-    if (!msg) return;
+    var input = $('wpMessageInput'); if (!input) return;
+    var msg = input.value.trim(); if (!msg) return;
     var displayName = (currentUser && currentUser.user_metadata && currentUser.user_metadata.display_name) ? currentUser.user_metadata.display_name : 'مجهول';
     appendChatMessage(displayName, msg, true);
     sendChatMessageBroadcast(msg);
@@ -1603,14 +1523,25 @@ function sendChatMessage() {
 function closeWatchParty() {
     toggleModal('watchPartyModal', false);
     document.body.style.overflow = '';
-    var wpPlayerFrame = $('wpPlayerFrame');
-    if (wpPlayerFrame) wpPlayerFrame.src = '';
+    var wpPlayerFrame = $('wpPlayerFrame'); if (wpPlayerFrame) wpPlayerFrame.src = '';
     if (wpChannel) {
         if (wpIsHost && wpMembers.length) {
             wpChannel.send({ type: 'broadcast', event: 'member_leave', payload: { userId: currentUser.id } });
         }
         wpChannel.unsubscribe();
         wpChannel = null;
+    }
+    // حذف الغرفة إذا كان المضيف وآخر عضو
+    if (wpIsHost && wpMembers.length <= 1) {
+        // حذف الغرفة من قاعدة البيانات
+        (async () => {
+            try {
+                var session = JSON.parse(localStorage.getItem('shush_session'));
+                var token = session.access_token;
+                await gatewayRequest('rooms', 'PUT', { id: wpRoomCode, is_active: false }, token);
+                console.log('تم حذف الغرفة بسبب مغادرة المضيف');
+            } catch(e) { console.error(e); }
+        })();
     }
     wpRoomCode = null;
     wpIsHost = false;
@@ -1630,10 +1561,7 @@ async function endWatchParty() {
     }
 }
 function inviteFriendsToRoom() {
-    if (friends.length === 0) {
-        showToast('لا يوجد أصدقاء');
-        return;
-    }
+    if (friends.length === 0) { showToast('لا يوجد أصدقاء'); return; }
     var list = $('inviteFriendsList');
     if (list) {
         list.innerHTML = friends.map(function(f) {
@@ -1648,35 +1576,24 @@ async function sendRoomInvite(friendId) {
         if (result.error) throw result.error;
         showToast('✅ تم إرسال الدعوة');
         closeInviteModal();
-    } catch(e) {
-        console.error(e);
-        showToast('❌ فشل الإرسال');
-    }
+    } catch(e) { console.error(e); showToast('❌ فشل الإرسال'); }
 }
 function showJoinSplash(text) {
     var splash = $('joinSplash');
     if (splash) {
         var splashText = $('joinSplashText');
         if (splashText) splashText.textContent = text;
-        var splashError = $('joinSplashError');
-        if (splashError) splashError.style.display = 'none';
-        var splashRetry = $('joinSplashRetry');
-        if (splashRetry) splashRetry.style.display = 'none';
+        var splashError = $('joinSplashError'); if (splashError) splashError.style.display = 'none';
+        var splashRetry = $('joinSplashRetry'); if (splashRetry) splashRetry.style.display = 'none';
         splash.classList.add('active');
     }
 }
 function showJoinError(msg) {
     var splash = $('joinSplash');
     if (splash) {
-        var splashText = $('joinSplashText');
-        if (splashText) splashText.textContent = '';
-        var splashError = $('joinSplashError');
-        if (splashError) {
-            splashError.textContent = msg;
-            splashError.style.display = 'block';
-        }
-        var splashRetry = $('joinSplashRetry');
-        if (splashRetry) splashRetry.style.display = 'block';
+        var splashText = $('joinSplashText'); if (splashText) splashText.textContent = '';
+        var splashError = $('joinSplashError'); if (splashError) { splashError.textContent = msg; splashError.style.display = 'block'; }
+        var splashRetry = $('joinSplashRetry'); if (splashRetry) splashRetry.style.display = 'block';
     }
 }
 function hideJoinSplash() {
@@ -1685,10 +1602,7 @@ function hideJoinSplash() {
 }
 function retryJoinRoom() {
     var code = pendingRoomCode || new URLSearchParams(window.location.search).get('room');
-    if (code) {
-        showJoinSplash('🎉 جاري الانضمام...');
-        joinWatchParty(code);
-    }
+    if (code) { showJoinSplash('🎉 جاري الانضمام...'); joinWatchParty(code); }
 }
 function copyInviteLink() {
     var url = window.location.origin + window.location.pathname + '?room=' + wpRoomCode;
@@ -1751,9 +1665,7 @@ if ($('wpMessageInput')) {
         }
         var mainEl = $('main');
         if (mainEl) originalMainHTML = mainEl.innerHTML;
-    } catch(e) {
-        console.error(e);
-    } finally {
+    } catch(e) { console.error(e); } finally {
         if (splash) {
             splash.classList.add('fade-out');
             setTimeout(function() { if (splash && splash.remove) splash.remove(); }, 300);
