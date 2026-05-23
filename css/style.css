@@ -539,3 +539,11 @@ footer { text-align:center; padding:16px; color:var(--t3); font-size:11px; borde
     background: #38bdf8 !important;
     transform: translateY(-2px);
 }
+/* إضافة مسافة أسفل أزرار التفاصيل */
+.detail-actions {
+    margin-bottom: 20px !important;
+    padding-bottom: 10px !important;
+}
+.dinfo {
+    padding-bottom: 25px;
+}
