@@ -606,7 +606,17 @@ $('sinput').addEventListener('input', () => { clearTimeout(searchTimeout); searc
 $('searchIcon').addEventListener('click', performSearch);
 
 // ========== WATCH PARTY (Broadcast) - استبدال PeerJS ==========
-const VIDFAST_ORIGINS = ['https://vidfast.pro','https://vidfast.in','https://vidfast.io','https://vidfast.me','https://vidfast.net','https://vidfast.pm','https://vidfast.xyz'];
+const  = ['https://vidfast.pro','https://vidfast.in','https://vidfast.io','https://vidfast.me','https://vidfast.net','https://vidfast.pm','https://vidfast.xyz'];
+window.addEventListener('message', (event) => {
+    if (!VIDFAST_ORIGINS.includes(event.origin)) return;
+    if (event.data && event.data.type === 'PLAYER_EVENT') {
+        console.log('📥 حدث من VidFast:', event.data.data);
+        // تمرير الحدث إلى handlePlayerMessage إذا كان المضيف
+        if (wpIsHost && typeof handlePlayerMessage === 'function') {
+            handlePlayerMessage(event);
+        }
+    }
+});
 
 function initBroadcast(asHost) {
     if (wpChannel) wpChannel.unsubscribe();
@@ -654,15 +664,27 @@ function sendChatMessageBroadcast(msg) {
     wpChannel.send({ type: 'broadcast', event: 'chat', payload: { displayName, message: msg } });
 }
 function handlePlayerMessage(event) {
-    if (!VIDFAST_ORIGINS.includes(event.origin)) return;
+    console.log('🎯 handlePlayerMessage called, origin:', event.origin);
+    if (!VIDFAST_ORIGINS.includes(event.origin)) {
+        console.warn('❌ Origin غير مسموح:', event.origin);
+        return;
+    }
     if (!event.data || event.data.type !== 'PLAYER_EVENT') return;
     const { event: e, currentTime, playing } = event.data.data;
+    console.log('📤 حدث من VidFast:', e, currentTime, playing);
     if (wpIsHost && wpChannel) {
-        if (e === 'play' || e === 'playing') sendSyncCommand('play', currentTime);
-        else if (e === 'pause') sendSyncCommand('pause', currentTime);
-        else if (e === 'seeked') sendSyncCommand(playing ? 'play' : 'pause', currentTime);
-        // تحديث lastSyncTime للتقدم
-        if (currentTime !== undefined) lastSyncTime = currentTime;
+        if (e === 'play' || e === 'playing') {
+            console.log('📡 إرسال أمر play إلى Broadcast');
+            sendSyncCommand('play', currentTime);
+        } else if (e === 'pause') {
+            console.log('📡 إرسال أمر pause إلى Broadcast');
+            sendSyncCommand('pause', currentTime);
+        } else if (e === 'seeked') {
+            console.log('📡 إرسال أمر seeked إلى Broadcast');
+            sendSyncCommand(playing ? 'play' : 'pause', currentTime);
+        }
+    } else {
+        console.log('⚠️ المضيف غير جاهز أو wpChannel مفقود');
     }
 }
 async function createWatchParty() {
@@ -692,10 +714,19 @@ async function joinWatchParty(code) {
             curSeason = r.season;
             curEp = r.episode;
             hideJoinSplash();
-            openWatchPartyUI();
+            ();
             initBroadcast(false);
         } else showJoinError('❌ الغرفة غير متاحة');
     } catch(e) { showJoinError('❌ فشل الانضمام'); }
+}
+openWatchPartyUI();
+    initBroadcast(false);
+    // إرسال إعلان انضمام الضيف بعد الاشتراك بقليل
+    setTimeout(() => {
+        if (wpChannel) {
+            wpChannel.send({ type: 'broadcast', event: 'member_join', payload: { userId: currentUser.id, displayName: currentUser.user_metadata?.display_name || 'ضيف', avatar: currentUser.user_metadata?.avatar || '👤' } });
+        }
+    }, 1000);
 }
 function openWatchPartyUI() {
     toggleModal('watchPartyModal', true);
@@ -703,6 +734,7 @@ function openWatchPartyUI() {
     $('wpPlayerPlaceholder').style.display = 'none';
     $('wpPlayerFrame').style.display = 'block';
     $('wpPlayerFrame').src = SRCS[0](curType, curItem.id, curSeason, curEp);
+  $('wpPlayerFrame').setAttribute('allow', 'autoplay; encrypted-media; fullscreen; picture-in-picture');
     $('wpPlayerFrame').onload = () => {
         if ($('wpPlayerFrame').hasAttribute('sandbox')) $('wpPlayerFrame').removeAttribute('sandbox');
     };
