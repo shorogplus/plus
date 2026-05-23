@@ -1516,23 +1516,23 @@ function openWatchPartyUI() {
 }
 function updateUsersListBroadcast() {
     const usersList = $('wpUsersList');
+    if (!usersList) return;
     usersList.querySelectorAll('.wp-user-item').forEach(el => el.remove());
-    const myName = currentUser?.user_metadata?.display_name || 'أنا';
-    const myAvatar = currentUser?.user_metadata?.avatar || '😊';
-    const myIcon = avatarToIcon(myAvatar);
-    const myDiv = document.createElement('div');
-    myDiv.className = 'wp-user-item';
-    myDiv.innerHTML = `<div class="user-name"><span class="user-dot"></span><span>${myIcon}</span><span>${myName}</span>${wpIsHost ? '<span class="host-badge">المضيف</span>' : ''}</div>`;
-    usersList.appendChild(myDiv);
-    wpMembers.forEach(m => {
-        if (m.userId !== currentUser?.id) {
-            const userIcon = avatarToIcon(m.avatar || '👤');
-            const userDiv = document.createElement('div');
-            userDiv.className = 'wp-user-item';
-            userDiv.innerHTML = `<div class="user-name"><span class="user-dot"></span><span>${userIcon}</span><span>${m.displayName}</span></div>`;
-            usersList.appendChild(userDiv);
-        }
-    });
+
+    // تحديد معرف المضيف الحقيقي (إذا كان wpHostId موجوداً نستخدمه، وإلا نستخدم wpIsHost)
+    const hostId = wpHostId || (wpIsHost ? currentUser?.id : null);
+
+    for (const member of wpMembers) {
+        const userDiv = document.createElement('div');
+        userDiv.className = 'wp-user-item';
+        const isHost = (hostId !== null && member.userId === hostId);
+        const hostBadge = isHost ? '<span class="host-badge">المضيف</span>' : '';
+        const isCurrentUser = (member.userId === currentUser?.id);
+        const youText = isCurrentUser ? ' (أنت)' : '';
+        const avatarHtml = avatarToIcon(member.avatar || '👤');
+        userDiv.innerHTML = `<div class="user-name"><span class="user-dot"></span>${avatarHtml}<span>${member.displayName}</span>${youText}${hostBadge}</div>`;
+        usersList.appendChild(userDiv);
+    }
 }
 // أضف هذه الدالة المساعدة:
 function avatarToIcon(emoji) {
