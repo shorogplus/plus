@@ -611,6 +611,9 @@ async function removeFriend(friendId) {
 
 // ========== SETTINGS ==========
 function openSettings() {
+    closeUserDropdown();  // إغلاق القائمة أولاً
+    if (!currentUser) return;
+    // باقي الكود كما هو...
     if (!currentUser) return;
     var setDisplayName = $('setDisplayName');
     if (setDisplayName) setDisplayName.value = (currentUser.user_metadata && currentUser.user_metadata.display_name) ? currentUser.user_metadata.display_name : '';
@@ -644,18 +647,25 @@ async function saveSettings() {
     try {
         if (newPass) await authGateway('updatePassword', { password: newPass });
         // تحديث الملف الشخصي في Supabase
-        await dbClient.from('profiles').update({ display_name: displayName, avatar: avatar }).eq('id', currentUser.id);
+        const { error } = await dbClient.from('profiles').update({ display_name: displayName, avatar: avatar }).eq('id', currentUser.id);
+        if (error) throw error;
+        
         // تحديث user_metadata محلياً
         currentUser.user_metadata = { ...currentUser.user_metadata, display_name: displayName, avatar: avatar };
-        // تحديث الواجهة
-        updateUIAfterLogin();
-        closeSettings();
-       closeUserDropdown();
-        showToast('✅ تم الحفظ');
         
-        // إعادة تحميل بيانات المستخدم لتحديث الصورة في جميع الأماكن (مثل الدردشة، غرفة المشاهدة)
-        await loadUserData();
-    } catch(e) { showToast('❌ فشل الحفظ'); }
+        // تحديث الواجهة في كل مكان
+        updateUIAfterLogin();                     // شريط التنقل
+        renderFriendsListUI();                    // قائمة الأصدقاء
+        if (typeof renderFriendRequestsUI === 'function') renderFriendRequestsUI(); // طلبات الصداقة
+        if (wpChannel && wpIsHost) updateUsersListBroadcast(); // غرفة المشاهدة
+        
+        closeSettings();
+        closeUserDropdown();    // إغلاق القائمة
+        showToast('✅ تم الحفظ');
+    } catch(e) {
+        console.error(e);
+        showToast('❌ فشل الحفظ');
+    }
 }
 
 // ========== ADMIN ==========
@@ -668,6 +678,9 @@ async function checkAdmin() {
     if (adminMenuBtn) adminMenuBtn.style.display = isAdmin ? 'flex' : 'none';
 }
 function openAdmin() {
+    closeUserDropdown();  // إغلاق القائمة أولاً
+    if (!currentUser) return;
+    // باقي الكود كما هو...
     if (!isAdmin) return;
     toggleModal('adminModal', true);
     var firstTab = document.querySelector('#adminModal .admin-tab');
@@ -1701,6 +1714,13 @@ document.addEventListener('keydown', function(e) {
         else if ($('dmModal') && $('dmModal').classList.contains('active')) closeDMModal();
         else if ($('notificationsModal') && $('notificationsModal').classList.contains('active')) closeNotifications();
       
+    }
+});
+document.addEventListener('click', function(e) {
+    const userInfo = document.getElementById('userInfo');
+    const dropdown = document.getElementById('userDropdown');
+    if (userInfo && dropdown && !userInfo.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.remove('show');
     }
 });
 if ($('wpMessageInput')) {
