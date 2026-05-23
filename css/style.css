@@ -525,22 +525,7 @@ footer { text-align:center; padding:16px; color:var(--t3); font-size:11px; borde
     background: #ef4444;
     box-shadow: 0 0 8px rgba(239,68,68,0.5);
 }
-/* تحسين خلفية الهيرو - تأثير زجاجي مع تدرج يجعل النص واضحاً */
-.hero-c {
-    background: rgba(7, 7, 15, 0.6);
-    backdrop-filter: blur(12px);
-    border-radius: 24px;
-    padding: 20px 28px 24px;
-    max-width: 550px;
-    border: 1px solid rgba(245,158,11,0.3);
-    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);
-    transition: backdrop-filter 0.3s;
-}
-/* تحسين التدرج العلوي لضمان تباين أفضل */
-.hero-veil {
-    background: linear-gradient(to top, rgba(7,7,15,0.7) 0%, rgba(7,7,15,0.3) 55%, transparent 100%),
-                linear-gradient(to right, rgba(7,7,15,0.5) 18%, transparent 75%);
-}
+
 /* جعل الخطوط أكثر وضوحاً */
 .htitle, .hdesc, .hmeta {
     text-shadow: 0 2px 4px rgba(0,0,0,0.5);
