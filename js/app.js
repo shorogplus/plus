@@ -30,6 +30,7 @@ let isAdmin = false;
 let wpChannel = null;
 let wpMembers = [];
 let wpIsHost = false;
+let wpHostId = null;      // معرف المضيف الحقيقي (حتى يعرفه الضيف)
 let wpRoomCode = null;
 let pendingRoomCode = null;
 let lastSyncTime = 0, isBuffering = false;
@@ -121,7 +122,7 @@ async function authGateway(action, payload) {
     return result;
 }
 
-// Login/Register events (مختصرة ولكنها موجودة في الكود الأصلي، لنكررها هنا)
+// Login/Register events (مختصرة ولكنها موجودة في الكود الأصلي، سنكررها)
 var tabLoginModal = $('tabLoginModal');
 var tabRegisterModal = $('tabRegisterModal');
 var btnLogin = $('btnLogin');
@@ -525,27 +526,33 @@ function renderFriendRequestsUI() {
     list.innerHTML = friendRequests.map(function(req) {
         var sAv = (req.sender && req.sender.avatar) ? req.sender.avatar : '👤';
         var sName = (req.sender && req.sender.display_name) ? req.sender.display_name : 'مستخدم';
-        return '<div class="request-item"><div class="finfo"><div class="favatar">' + sAv + '</div><span>' + sName + '</span></div><div style="display:flex;gap:6px;"><button class="login-btn" style="width:auto;padding:4px 8px;font-size:10px;background:var(--green);" onclick="acceptFriendRequest(\'' + req.id + '\', \'' + req.sender_id + '\')">✅</button><button class="login-btn" style="width:auto;padding:4px 8px;font-size:10px;background:#ef4444;" onclick="rejectFriendRequest(\'' + req.id + '\')">❌</button></div></div>';
+        return '<div class="request-item"><div class="finfo"><div class="favatar">' + sAv + '</div><span>' + sName + '</span></div><div style="display:flex;gap:6px;"><button class="login-btn" style="width:auto;padding:4px 8px;font-size:10px;background:var(--green);" onclick="acceptFriendRequest(\'' + req.id + '\', \'' + req.sender_id + '\')">✅</button><button class="login-btn" style="width:auto;padding:4px 8px;font-size:10px;background:#ef4444;" onclick="rejectFriendRequest(\'' + req.id + '\', \'' + req.sender_id + '\')">❌</button></div></div>';
     }).join('');
 }
 async function acceptFriendRequest(requestId, senderId) {
+    // إضافة الصداقة في جدول friends
     await dbClient.from('friends').insert([ { user_id: currentUser.id, friend_id: senderId }, { user_id: senderId, friend_id: currentUser.id } ]);
+    // حذف طلب الصداقة
     await dbClient.from('friend_requests').delete().eq('id', requestId);
-    friendRequests = friendRequests.filter(function(req) { return req.id !== requestId; });
+    // تحديث المصفوفة المحلية وإعادة رسم الواجهة
+    friendRequests = friendRequests.filter(req => req.id !== requestId);
     renderFriendRequestsUI();
-    // حذف الإشعارات المرتبطة بطلب الصداقة هذا
+    // حذف الإشعارات المرتبطة بهذا الطلب
     await dbClient.from('notifications').delete().eq('user_id', currentUser.id).eq('type', 'friend_request').eq('sender_id', senderId);
     loadNotifications();
     showToast('✅ تم قبول الصداقة');
+    // تحديث قائمة الأصدقاء
     await loadFriends();
 }
-async function rejectFriendRequest(requestId) {
+async function rejectFriendRequest(requestId, senderId) {
+    // حذف طلب الصداقة
     await dbClient.from('friend_requests').delete().eq('id', requestId);
-    friendRequests = friendRequests.filter(function(req) { return req.id !== requestId; });
+    // تحديث المصفوفة المحلية وإعادة رسم الواجهة
+    friendRequests = friendRequests.filter(req => req.id !== requestId);
     renderFriendRequestsUI();
-    // حذف الإشعارات
-    var req = friendRequests.find(r => r.id === requestId); // لكنه حذف، لذا نحتاج للسابق
-    // سنمرر senderId من الوظيفة
+    // حذف الإشعارات المرتبطة بهذا الطلب
+    await dbClient.from('notifications').delete().eq('user_id', currentUser.id).eq('type', 'friend_request').eq('sender_id', senderId);
+    loadNotifications();
     showToast('❌ تم رفض الطلب');
 }
 async function loadFriends() {
@@ -1332,7 +1339,7 @@ if ($('sinput')) {
 }
 if ($('searchIcon')) $('searchIcon').addEventListener('click', performSearch);
 
-// ========== WATCH PARTY (Broadcast) ==========
+// ========== WATCH PARTY (Broadcast) with proper host ID ==========
 function dismissClickPrompt() {
     var promptDiv = document.getElementById('wpClickPrompt');
     if (promptDiv) promptDiv.style.display = 'none';
@@ -1369,31 +1376,30 @@ function initBroadcast(asHost) {
         wpMembers = wpMembers.filter(function(m) { return m.userId !== payload.userId; });
         updateUsersListBroadcast();
     });
-    // استماع لطلب قائمة الأعضاء من الضيف
     wpChannel.on('broadcast', { event: 'request_members' }, function(payloadData) {
         if (wpIsHost) {
-            // إرسال قائمة الأعضاء الحالية
-            wpChannel.send({ type: 'broadcast', event: 'member_list', payload: { members: wpMembers } });
+            wpChannel.send({ type: 'broadcast', event: 'member_list', payload: { members: wpMembers, hostId: currentUser.id } });
         }
     });
     wpChannel.on('broadcast', { event: 'member_list' }, function(payloadData) {
         if (!wpIsHost) {
-            var members = payloadData.payload.members;
-            wpMembers = members;
+            var data = payloadData.payload;
+            wpMembers = data.members;
+            wpHostId = data.hostId;  // استلام معرف المضيف الحقيقي
             updateUsersListBroadcast();
         }
     });
     wpChannel.subscribe(async function(status) {
         if (status === 'SUBSCRIBED' && asHost) {
+            wpHostId = currentUser.id;
             wpChannel.send({ type: 'broadcast', event: 'member_join', payload: { userId: currentUser.id, displayName: (currentUser.user_metadata && currentUser.user_metadata.display_name) ? currentUser.user_metadata.display_name : 'المضيف', avatar: (currentUser.user_metadata && currentUser.user_metadata.avatar) ? currentUser.user_metadata.avatar : '👑' } });
             if (!wpMembers.some(function(m) { return m.userId === currentUser.id; })) {
                 wpMembers.push({ userId: currentUser.id, displayName: (currentUser.user_metadata && currentUser.user_metadata.display_name) ? currentUser.user_metadata.display_name : 'المضيف', avatar: (currentUser.user_metadata && currentUser.user_metadata.avatar) ? currentUser.user_metadata.avatar : '👑' });
                 updateUsersListBroadcast();
             }
         } else if (status === 'SUBSCRIBED' && !asHost) {
-            // طلب قائمة الأعضاء من المضيف بعد الاشتراك
             setTimeout(function() {
-                wpChannel.send({ type: 'broadcast', event: 'request_members', payload: {} });
+                if (wpChannel) wpChannel.send({ type: 'broadcast', event: 'request_members', payload: {} });
             }, 500);
         }
     });
@@ -1425,6 +1431,7 @@ async function createWatchParty() {
     closeDetail();
     wpRoomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
     wpIsHost = true;
+    wpHostId = currentUser.id;
     var session = JSON.parse(localStorage.getItem('shush_session'));
     var token = session.access_token;
     try {
@@ -1461,7 +1468,7 @@ async function joinWatchParty(code) {
                     wpChannel.send({ type: 'broadcast', event: 'member_join', payload: { userId: currentUser.id, displayName: (currentUser.user_metadata && currentUser.user_metadata.display_name) ? currentUser.user_metadata.display_name : 'ضيف', avatar: (currentUser.user_metadata && currentUser.user_metadata.avatar) ? currentUser.user_metadata.avatar : '👤' } });
                 }
             }, 1000);
-            // حذف الإشعارات الخاصة بدعوة هذه الغرفة
+            // حذف إشعارات الدعوة لهذه الغرفة
             await dbClient.from('notifications').delete().eq('user_id', currentUser.id).eq('type', 'room_invite').eq('data->>roomCode', code);
             loadNotifications();
         } else { showJoinError('❌ الغرفة غير متاحة'); }
@@ -1499,7 +1506,9 @@ function updateUsersListBroadcast() {
         var m = wpMembers[i];
         var userDiv = document.createElement('div');
         userDiv.className = 'wp-user-item';
-        var hostBadge = (wpIsHost && m.userId === currentUser.id) ? '<span class="host-badge">المضيف</span>' : '';
+        // تحديد ما إذا كان هذا العضو هو المضيف الحقيقي (wpHostId)
+        var isThisHost = (wpHostId !== null && m.userId === wpHostId);
+        var hostBadge = isThisHost ? '<span class="host-badge">المضيف</span>' : '';
         userDiv.innerHTML = '<div class="user-name"><span class="user-dot"></span><span>' + m.displayName + '</span>' + (m.userId === currentUser.id ? ' (أنت)' : '') + hostBadge + '</div>';
         usersList.appendChild(userDiv);
     }
@@ -1531,9 +1540,8 @@ function closeWatchParty() {
         wpChannel.unsubscribe();
         wpChannel = null;
     }
-    // حذف الغرفة إذا كان المضيف وآخر عضو
+    // إذا كان المضيف وهو آخر عضو (أو غادر الجميع) نغلق الغرفة في قاعدة البيانات
     if (wpIsHost && wpMembers.length <= 1) {
-        // حذف الغرفة من قاعدة البيانات
         (async () => {
             try {
                 var session = JSON.parse(localStorage.getItem('shush_session'));
@@ -1545,6 +1553,7 @@ function closeWatchParty() {
     }
     wpRoomCode = null;
     wpIsHost = false;
+    wpHostId = null;
     wpMembers = [];
     window.removeEventListener('message', handlePlayerMessage);
 }
