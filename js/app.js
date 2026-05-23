@@ -646,28 +646,40 @@ async function saveSettings() {
     if (!displayName) { showToast('⚠️ الاسم مطلوب'); return; }
     try {
         if (newPass) await authGateway('updatePassword', { password: newPass });
-        // تحديث الملف الشخصي في Supabase
-        const { error } = await dbClient.from('profiles').update({ display_name: displayName, avatar: avatar }).eq('id', currentUser.id);
-        if (error) throw error;
         
-        // تحديث user_metadata محلياً
+        // 1. تحديث قاعدة البيانات
+        await dbClient.from('profiles').update({ display_name: displayName, avatar: avatar }).eq('id', currentUser.id);
+        
+        // 2. تحديث user_metadata محلياً
         currentUser.user_metadata = { ...currentUser.user_metadata, display_name: displayName, avatar: avatar };
         
-        // تحديث الواجهة في كل مكان
-        updateUIAfterLogin();                     // شريط التنقل
-        renderFriendsListUI();                    // قائمة الأصدقاء
-        if (typeof renderFriendRequestsUI === 'function') renderFriendRequestsUI(); // طلبات الصداقة
-        if (wpChannel && wpIsHost) updateUsersListBroadcast(); // غرفة المشاهدة
+        // 3. تحديث شريط التنقل
+        updateUIAfterLogin();
+        
+        // 4. إعادة تحميل قائمة الأصدقاء (لتحديث صورهم، ليس ضرورياً لكن احتياطي)
+        await loadFriends();
+        
+        // 5. إعادة تحميل طلبات الصداقة (للتحديث)
+        await loadFriendRequests();
+        
+        // 6. إذا كانت غرفة المشاهدة مفتوحة، تحديث قائمة المشاركين
+        if ($('watchPartyModal') && $('watchPartyModal').classList.contains('active')) {
+            const index = wpMembers.findIndex(m => m.userId === currentUser.id);
+            if (index !== -1) {
+                wpMembers[index].displayName = displayName;
+                wpMembers[index].avatar = avatar;
+            }
+            updateUsersListBroadcast();
+        }
         
         closeSettings();
-        closeUserDropdown();    // إغلاق القائمة
+        closeUserDropdown();
         showToast('✅ تم الحفظ');
     } catch(e) {
         console.error(e);
         showToast('❌ فشل الحفظ');
     }
 }
-
 // ========== ADMIN ==========
 async function checkAdmin() {
     if (!currentUser) return;
