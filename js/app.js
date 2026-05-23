@@ -314,15 +314,17 @@ function subscribeToRealtime() {
             newNotif.sender = senderData;
             showNotification(newNotif);
         })
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'direct_messages', filter: 'receiver_id=eq.' + currentUser.id }, async function(payload) {
-            if (currentDMUser === payload.new.sender_id) {
-                loadDMs(currentDMUser);
-            } else {
-                var senderResult = await dbClient.from('profiles').select('display_name, avatar').eq('id', payload.new.sender_id).single();
-                var senderData = senderResult.data;
-                showNotification({ type: 'direct_message', sender_id: payload.new.sender_id, sender: senderData });
-            }
-        })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'direct_messages', filter: `receiver_id=eq.${currentUser.id}` }, async payload => {
+    if (currentDMUser === payload.new.sender_id) {
+        loadDMs(currentDMUser);
+    } else {
+        // فقط إذا لم تكن نافذة الدردشة مفتوحة نعرض إشعارًا
+        if (!currentDMUser) {
+            const { data: senderData } = await dbClient.from('profiles').select('display_name, avatar').eq('id', payload.new.sender_id).single();
+            showNotification({ type: 'direct_message', sender_id: payload.new.sender_id, sender: senderData });
+        }
+    }
+})
         .subscribe(function(status, err) {
             console.log("📡 حالة التحديث اللحظي:", status);
             if (err) console.error(err);
