@@ -283,6 +283,12 @@ function updateUIAfterLogin() {
     $('userEmoji').innerHTML = iconHtml;
     $('userName').textContent = currentUser.user_metadata?.display_name||currentUser.email;
 }
+function toggleUserDropdown() {
+    const dropdown = document.getElementById('userDropdown');
+    if (dropdown) {
+        dropdown.classList.toggle('show');
+    }
+}
 
 // ========== DATA LOADING & REALTIME ==========
 var notificationChannel = null;
