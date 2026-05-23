@@ -80,6 +80,11 @@ function showToast(m) {
 }
 
 function showNotification(notif) {
+   if (notif.type === 'direct_message' && currentDMUser && notif.sender_id === currentDMUser) {
+        // فقط نقوم بتحديث قائمة الإشعارات في الخلفية ولكن لا نعرض إشعاراً منبثقاً
+        loadNotifications();
+        return;
+    }
     if ($('ppage') && ($('ppage').classList.contains('open') || ($('watchPartyModal') && $('watchPartyModal').classList.contains('active')))) {
         loadNotifications();
         return;
