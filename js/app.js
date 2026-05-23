@@ -61,6 +61,9 @@ function toggleModal(modalId, show) {
         } else {
             modal.classList.remove('active');
             if (['inviteFriendsModal', 'recommendModal', 'dmModal', 'notificationsModal'].includes(modalId)) modal.style.display = 'none';
+            if (modalId === 'dmModal') {
+                currentDMUser = null;   // <-- أضف هذا السطر
+            }
         }
     }
 }
