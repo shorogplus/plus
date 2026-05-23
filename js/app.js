@@ -289,7 +289,10 @@ function toggleUserDropdown() {
         dropdown.classList.toggle('show');
     }
 }
-
+function closeUserDropdown() {
+    const dropdown = $('userDropdown');
+    if (dropdown) dropdown.classList.remove('show');
+}
 // ========== DATA LOADING & REALTIME ==========
 var notificationChannel = null;
 async function loadUserData() {
@@ -634,26 +637,25 @@ function selectAvatar(el, avatar) {
     if (selectedAvatarInput) selectedAvatarInput.value = avatar;
 }
 async function saveSettings() {
-    var setDisplayName = $('setDisplayName');
-    var displayName = setDisplayName ? setDisplayName.value.trim() : '';
-    var selectedAvatarInput = $('selectedAvatarInput');
-    var avatar = selectedAvatarInput ? (selectedAvatarInput.value || '😊') : '😊';
-    var setNewPass = $('setNewPass');
-    var newPass = setNewPass ? setNewPass.value.trim() : '';
-    if (!displayName) {
-        showToast('⚠️ الاسم مطلوب');
-        return;
-    }
+    const displayName = $('setDisplayName').value.trim();
+    const avatar = $('selectedAvatarInput').value || '😊';
+    const newPass = $('setNewPass').value.trim();
+    if (!displayName) { showToast('⚠️ الاسم مطلوب'); return; }
     try {
         if (newPass) await authGateway('updatePassword', { password: newPass });
+        // تحديث الملف الشخصي في Supabase
         await dbClient.from('profiles').update({ display_name: displayName, avatar: avatar }).eq('id', currentUser.id);
-        currentUser.user_metadata = Object.assign({}, currentUser.user_metadata, { display_name: displayName, avatar: avatar });
+        // تحديث user_metadata محلياً
+        currentUser.user_metadata = { ...currentUser.user_metadata, display_name: displayName, avatar: avatar };
+        // تحديث الواجهة
         updateUIAfterLogin();
         closeSettings();
+       closeUserDropdown();
         showToast('✅ تم الحفظ');
-    } catch(e) {
-        showToast('❌ فشل الحفظ');
-    }
+        
+        // إعادة تحميل بيانات المستخدم لتحديث الصورة في جميع الأماكن (مثل الدردشة، غرفة المشاهدة)
+        await loadUserData();
+    } catch(e) { showToast('❌ فشل الحفظ'); }
 }
 
 // ========== ADMIN ==========
@@ -1698,6 +1700,9 @@ document.addEventListener('keydown', function(e) {
         else if ($('recommendModal') && $('recommendModal').classList.contains('active')) closeRecommendModal();
         else if ($('dmModal') && $('dmModal').classList.contains('active')) closeDMModal();
         else if ($('notificationsModal') && $('notificationsModal').classList.contains('active')) closeNotifications();
+       if (!e.target.closest('#userInfo')) {
+        const dd = $('userDropdown');
+        if (dd) dd.classList.remove('show');
     }
 });
 if ($('wpMessageInput')) {
