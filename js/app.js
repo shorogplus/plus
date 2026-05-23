@@ -264,7 +264,7 @@ function updateUIAfterLogin() {
     $('userInfo').style.display = 'flex';
     $('notifBtn').style.display = 'flex';
     const avatarEmoji = currentUser.user_metadata?.avatar || '😊';
-    $('userEmoji').innerHTML = avatarToIcon(avatarEmoji);
+   $('userEmoji').innerHTML = avatarToIcon(currentUser.user_metadata?.avatar || '😊');
     $('userName').textContent = currentUser.user_metadata?.display_name || currentUser.email;
 }
 function toggleUserDropdown() {
