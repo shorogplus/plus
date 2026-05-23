@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  <title>شوش+ TV | البث الحي</title>
+  
+  <link rel="icon" type="image/png" href="https://png.pngtree.com/png-clipart/20221214/ourmid/pngtree-circle-gold-frame-png-image_6522936.png">
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/style.css">
+  
+  <link rel="stylesheet" href="css/tv-style.css">
+  
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+  <div id="loginModal">
+    <div class="modal-backdrop" onclick="toggleModal('loginModal', false)"></div>
+    <div class="login-box">
+      <div class="login-tabs">
+        <button class="login-tab active" id="tabLoginModal">دخول</button>
+        <button class="login-tab" id="tabRegisterModal">حساب جديد</button>
+      </div>
+      <form id="loginFormModal" onsubmit="return false;">
+        <h2>👋 تسجيل الدخول</h2>
+        <input class="login-input" type="email" id="loginEmail" placeholder="البريد الإلكتروني" autocomplete="username">
+        <input class="login-input" type="password" id="loginPass" placeholder="كلمة المرور" autocomplete="current-password">
+        <div class="login-error" id="loginError"></div>
+        <button class="login-btn" id="btnLogin">دخول</button>
+      </form>
+      <form id="registerFormModal" style="display:none" onsubmit="return false;">
+        <h2>✨ حساب جديد</h2>
+        <input class="login-input" type="email" id="regEmail" placeholder="البريد الإلكتروني" autocomplete="email">
+        <input class="login-input" type="text" id="regName" placeholder="الاسم المستعار" autocomplete="username">
+        <input class="login-input" type="password" id="regPass" placeholder="كلمة المرور" autocomplete="new-password">
+        <input class="login-input" type="password" id="regPassConfirm" placeholder="تأكيد كلمة المرور" autocomplete="new-password">
+        <div class="login-error" id="regError"></div>
+        <button class="login-btn" id="btnRegister">تسجيل</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="settingsModal">
+    <div class="modal-backdrop" onclick="toggleModal('settingsModal', false)"></div>
+    <form class="custom-box" onsubmit="return false;">
+      <h2>⚙️ إعدادات الحساب</h2>
+      <input class="login-input" type="text" id="setDisplayName" placeholder="الاسم المستعار" autocomplete="off">
+      <input type="hidden" id="selectedAvatarInput">
+      <div style="margin-bottom:12px; text-align:right;">
+        <label style="font-size:12px; color:var(--t2);">اختر صورتك الرمزية:</label>
+        <div id="avatarSelection" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; justify-content:center;"></div>
+      </div>
+      <input class="login-input" type="password" id="setNewPass" placeholder="كلمة مرور جديدة (اختياري)" autocomplete="new-password">
+      <button class="login-btn" onclick="saveSettings()">💾 حفظ التغييرات</button>
+      <button type="button" class="login-btn" style="background:transparent;color:var(--t2);margin-top:4px;" onclick="toggleModal('settingsModal', false)">إلغاء</button>
+    </form>
+  </div>
+
+  <div id="friendsModal">
+    <div class="modal-backdrop" onclick="toggleModal('friendsModal', false)"></div>
+    <div class="custom-box">
+      <h2>👥 الأصدقاء</h2>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <input class="login-input" type="text" id="friendSearchInput" placeholder="🔍 ابحث باسم المستعار..." style="margin-bottom:0;">
+        <button class="login-btn" style="width:auto;padding:10px 16px;" onclick="searchFriend()">بحث</button>
+      </div>
+      <div id="friendSearchResult"></div>
+      <h3 style="margin-top:16px; font-size:14px; color:var(--gold);">📩 طلبات الصداقة</h3>
+      <div id="friendRequestsList"></div>
+      <h3 style="margin-top:16px; font-size:14px; color:var(--gold);">👥 أصدقائي</h3>
+      <div id="friendsList"></div>
+      <button class="login-btn" style="background:transparent;color:var(--t2);margin-top:8px;" onclick="toggleModal('friendsModal', false)">إغلاق</button>
+    </div>
+  </div>
+
+  <div id="notificationsModal">
+    <div class="modal-backdrop" onclick="toggleModal('notificationsModal', false)"></div>
+    <div class="custom-box">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h2 style="margin:0;">🔔 الإشعارات</h2>
+        <button onclick="toggleModal('notificationsModal', false)" style="background:none;border:none;color:var(--t2);cursor:pointer;font-size:16px;">✕</button>
+      </div>
+      <div id="notificationsList" style="max-height:60vh; overflow-y:auto;"></div>
+    </div>
+  </div>
+
+  <div id="adminModal">
+    <div class="modal-backdrop" onclick="toggleModal('adminModal', false)"></div>
+    <div class="custom-box" style="max-width:600px;">
+      <h2>👑 لوحة تحكم الإدارة</h2>
+      <div class="admin-tabs" style="justify-content:center;">
+        <button class="admin-tab on" onclick="switchAdminTab('stats',this)">📊 الإحصائيات</button>
+        <button class="admin-tab" onclick="switchAdminTab('users',this)">👥 الأعضاء</button>
+        <button class="admin-tab" onclick="switchAdminTab('channels',this)">📺 القنوات</button>
+      </div>
+      <div id="admin-stats" class="admin-section on"></div>
+      <div id="admin-users" class="admin-section"></div>
+      <div id="admin-channels" class="admin-section"></div>
+      <button class="login-btn" style="background:transparent;color:var(--t2);margin-top:12px;" onclick="toggleModal('adminModal', false)">إغلاق</button>
+    </div>
+  </div>
+
+  <div id="inviteFriendsModal">
+    <div class="modal-backdrop" onclick="toggleModal('inviteFriendsModal', false)"></div>
+    <div class="custom-box" style="max-width:400px;">
+      <h2>دعوة صديق</h2>
+      <div id="inviteFriendsList" style="max-height:300px; overflow-y:auto;"></div>
+      <button onclick="toggleModal('inviteFriendsModal', false)" style="margin-top:12px; width:100%; background:transparent; border:1px solid var(--border); color:var(--t2); padding:8px; border-radius:8px; cursor:pointer;">إغلاق</button>
+    </div>
+  </div>
+
+  <div id="joinSplash">
+    <div class="spinner"></div>
+    <div class="splash-text" id="joinSplashText">🎉 جاري الانضمام للغرفة...</div>
+    <div class="splash-error" id="joinSplashError"></div>
+    <button class="splash-retry" id="joinSplashRetry" onclick="retryJoinRoom()">🔄 إعادة المحاولة</button>
+  </div>
+  <div id="greetingSplash">
+    <div class="greeting-text" id="greetingText"></div>
+  </div>
+
+  <div id="toast"></div>
+
+  <nav id="nav">
+    <div class="logo"><img src="https://imgg.io/images/2026/05/12/7e237879e5efdb14add52e8957077836.png" alt="شوش+" onerror="this.style.display='none';this.parentElement.innerHTML='<span style=color:var(--gold);font-size:20px;font-weight:900>🌅 شوش+</span>'"></div>
+    <div class="ntabs">
+      <button class="ntab" onclick="window.location.href='index.html'">الكل</button>
+      <button class="ntab" onclick="window.location.href='index.html'">أفلام</button>
+      <button class="ntab" onclick="window.location.href='index.html'">مسلسلات</button>
+      <button class="ntab tv-tab-glow on" onclick="window.location.href='tv.html'">
+  <i class="fa-solid fa-satellite-dish"></i> TV
+</button>
+      </button>
+      <button class="ntab" onclick="window.location.href='index.html'">❤️ قائمتي</button>
+      <button class="ntab" onclick="window.location.href='index.html'">⏱️ متابعة</button>
+    </div>
+    <div class="nright">
+      
+      <div class="user-btn" id="notifBtn" style="display:none; padding:4px 8px;" onclick="openNotifications()">
+        🔔 <span class="notif-badge" id="notifBadge"></span>
+      </div>
+
+      <div class="user-btn" id="userBtn" onclick="toggleModal('loginModal', true)"><div class="user-av">👤</div>دخول</div>
+      <div class="user-btn" id="userInfo" style="display:none" onclick="toggleUserDropdown()">
+        <div class="user-av" id="userEmoji" style="background:transparent; border:none; font-size:20px;">😊</div>
+        <span id="userName">-</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style="margin-right:2px;"><path d="M7 10l5 5 5-5z"/></svg>
+        <div class="user-dropdown" id="userDropdown">
+          <button onclick="event.stopPropagation(); openSettings();"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> الإعدادات</button>
+          <button onclick="event.stopPropagation(); openFriends();"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> الأصدقاء</button>
+          <button onclick="event.stopPropagation(); openAdmin();" id="adminMenuBtn" style="display:none;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> لوحة التحكم</button>
+          <button onclick="event.stopPropagation(); logout();"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> تسجيل خروج</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="tv-loader-overlay" id="tv-loader">
+    <div class="loader-content">
+      <div class="spinner" style="border-top-color: var(--gold); border-width: 3px; border-style: solid; border-radius: 50%; width: 40px; height: 40px; animation: spin 0.8s linear infinite;"></div>
+      <h2 style="color: var(--gold); margin-top: 15px;">شوش+ <span class="badge" style="background: red; color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px;">LIVE</span></h2>
+    </div>
+  </div>
+
+  <div class="tv-app-container" style="height: calc(100vh - 64px);">
+    
+    <aside class="glass-sidebar">
+      <nav class="sidebar-navigation">
+        <div class="nav-section-title">شخصي</div>
+        <ul class="nav-menu" id="static-menu">
+          <li class="nav-item" data-nav="favorites"><i class="fa-solid fa-heart"></i><span>القنوات المفضلة</span></li>
+        </ul>
+
+        <div class="nav-section-title">تصنيفات البث</div>
+        <ul class="nav-menu dynamic-categories" id="dynamic-categories-list">
+          </ul>
+      </nav>
+    </aside>
+
+    <main class="main-dashboard">
+      <header class="dashboard-header">
+        <div class="header-title-zone">
+          <h1 id="category-display-title">جاري التحميل...</h1>
+          <p id="channels-count-badge" class="count-badge"></p>
+        </div>
+        
+        <div class="header-action-zone">
+          <select id="filter-country" class="premium-select">
+            <option value="all">🌍 كل الدول</option>
+          </select>
+          <select id="filter-language" class="premium-select">
+            <option value="all">🗣️ كل اللغات</option>
+          </select>
+        </div>
+      </header>
+
+      <div class="scrollable-content" id="scrollable-content">
+        <section class="premium-grid" id="premium-channels-grid"></section>
+        <div class="load-more-container">
+          <button id="btn-load-more" class="premium-btn" style="display:none;">تحميل المزيد <i class="fa-solid fa-angle-down"></i></button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="cinema-player-wrapper" id="cinema-player-wrapper">
+    <video id="main-tv-video" playsinline></video>
+    <div class="cinema-overlay" id="cinema-overlay">
+      <header class="overlay-header-bar">
+        <div class="playing-channel-meta">
+          <img src="" id="player-logo-frame" alt="">
+          <div class="meta-text">
+            <h3 id="player-channel-title">اسم القناة</h3>
+            <span id="player-channel-group" class="group-tag">التصنيف</span>
+          </div>
+        </div>
+        <div class="overlay-top-actions">
+          <button class="action-circle-btn" id="btn-toggle-quick-menu"><i class="fa-solid fa-list-ul"></i></button>
+          <button class="action-circle-btn close-danger" id="btn-kill-player"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      </header>
+
+      <div class="cinema-quick-menu" id="cinema-quick-menu">
+        <div class="quick-channels-scroll" id="quick-channels-list"></div>
+      </div>
+    
+      <footer class="overlay-footer-bar">
+        <div class="footer-controls-left">
+          <button class="control-media-btn" id="btn-channel-prev"><i class="fa-solid fa-backward-step"></i></button>
+          <button class="control-media-btn play-main" id="btn-channel-play-pause"><i class="fa-solid fa-pause"></i></button>
+          <button class="control-media-btn" id="btn-channel-next"><i class="fa-solid fa-forward-step"></i></button>
+          <div class="cinema-volume-container">
+            <input type="range" id="cinema-volume-range" min="0" max="1" step="0.05" value="1">
+          </div>
+        </div>
+        <div class="footer-controls-right">
+          <button class="fullscreen-premium-btn" id="btn-channel-fullscreen"><i class="fa-solid fa-expand"></i> <span>شاشة كاملة</span></button>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  
+  <script src="js/tv-app.js"></script>
+  
+</body>
+</html>
