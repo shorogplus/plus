@@ -260,28 +260,12 @@ async function logout() {
     if (notificationChannel) notificationChannel.unsubscribe();
 }
 function updateUIAfterLogin() {
-    $('userBtn').style.display='none'; $('userInfo').style.display='flex'; $('notifBtn').style.display='flex';
-    const avatarIcon = currentUser.user_metadata?.avatar || '😊';
-    // تحويل الإيموجي إلى أيقونة Font Awesome مناسبة
-    let iconHtml = '<i class="fa-regular fa-circle-user"></i>';
-    if (avatarIcon === '😊') iconHtml = '<i class="fa-regular fa-face-smile"></i>';
-    else if (avatarIcon === '👨') iconHtml = '<i class="fa-solid fa-user-tie"></i>';
-    else if (avatarIcon === '👩') iconHtml = '<i class="fa-solid fa-user"></i>';
-    else if (avatarIcon === '👦') iconHtml = '<i class="fa-solid fa-child"></i>';
-    else if (avatarIcon === '👧') iconHtml = '<i class="fa-solid fa-child"></i>';
-    else if (avatarIcon === '🦸‍♂️') iconHtml = '<i class="fa-solid fa-mask"></i>';
-    else if (avatarIcon === '🦸‍♀️') iconHtml = '<i class="fa-solid fa-mask"></i>';
-    else if (avatarIcon === '🥷') iconHtml = '<i class="fa-solid fa-user-ninja"></i>';
-    else if (avatarIcon === '🧛‍♂️') iconHtml = '<i class="fa-solid fa-vampire"></i>';
-    else if (avatarIcon === '🧚‍♀️') iconHtml = '<i class="fa-solid fa-fairy"></i>';
-    else if (avatarIcon === '🕵️‍♂️') iconHtml = '<i class="fa-solid fa-user-secret"></i>';
-    else if (avatarIcon === '🧑‍🚀') iconHtml = '<i class="fa-solid fa-astronaut"></i>';
-    else if (avatarIcon === '🦁') iconHtml = '<i class="fa-solid fa-lion"></i>';
-    else if (avatarIcon === '🐼') iconHtml = '<i class="fa-solid fa-panda"></i>';
-    else if (avatarIcon === '🦊') iconHtml = '<i class="fa-solid fa-fox"></i>';
-    else if (avatarIcon === '🦉') iconHtml = '<i class="fa-solid fa-owl"></i>';
-    $('userEmoji').innerHTML = iconHtml;
-    $('userName').textContent = currentUser.user_metadata?.display_name||currentUser.email;
+    $('userBtn').style.display = 'none';
+    $('userInfo').style.display = 'flex';
+    $('notifBtn').style.display = 'flex';
+    const avatarEmoji = currentUser.user_metadata?.avatar || '😊';
+    $('userEmoji').innerHTML = avatarToIcon(avatarEmoji);
+    $('userName').textContent = currentUser.user_metadata?.display_name || currentUser.email;
 }
 function toggleUserDropdown() {
     const dropdown = document.getElementById('userDropdown');
@@ -650,27 +634,14 @@ async function saveSettings() {
         // 1. تحديث قاعدة البيانات
         await dbClient.from('profiles').update({ display_name: displayName, avatar: avatar }).eq('id', currentUser.id);
         
-        // 2. تحديث user_metadata محلياً
+        // 2. تحديث user_metadata محلياً (بدون إعادة تحميل كامل)
         currentUser.user_metadata = { ...currentUser.user_metadata, display_name: displayName, avatar: avatar };
         
-        // 3. تحديث شريط التنقل
-        updateUIAfterLogin();
-        
-        // 4. إعادة تحميل قائمة الأصدقاء (لتحديث صورهم، ليس ضرورياً لكن احتياطي)
-        await loadFriends();
-        
-        // 5. إعادة تحميل طلبات الصداقة (للتحديث)
-        await loadFriendRequests();
-        
-        // 6. إذا كانت غرفة المشاهدة مفتوحة، تحديث قائمة المشاركين
-        if ($('watchPartyModal') && $('watchPartyModal').classList.contains('active')) {
-            const index = wpMembers.findIndex(m => m.userId === currentUser.id);
-            if (index !== -1) {
-                wpMembers[index].displayName = displayName;
-                wpMembers[index].avatar = avatar;
-            }
-            updateUsersListBroadcast();
-        }
+        // 3. تحديث جميع أجزاء الواجهة
+        updateUIAfterLogin();                      // شريط التنقل
+        renderFriendsListUI();                    // قائمة الأصدقاء
+        if (typeof renderFriendRequestsUI === 'function') renderFriendRequestsUI(); // طلبات الصداقة
+        if (wpChannel && wpIsHost) updateUsersListBroadcast(); // غرفة المشاهدة
         
         closeSettings();
         closeUserDropdown();
