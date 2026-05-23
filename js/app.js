@@ -1700,9 +1700,7 @@ document.addEventListener('keydown', function(e) {
         else if ($('recommendModal') && $('recommendModal').classList.contains('active')) closeRecommendModal();
         else if ($('dmModal') && $('dmModal').classList.contains('active')) closeDMModal();
         else if ($('notificationsModal') && $('notificationsModal').classList.contains('active')) closeNotifications();
-       if (!e.target.closest('#userInfo')) {
-        const dd = $('userDropdown');
-        if (dd) dd.classList.remove('show');
+      
     }
 });
 if ($('wpMessageInput')) {
